@@ -15,7 +15,9 @@ DEMO_USERS = [
     ("Maya Chen", "maya.demo@example.com"),
     ("Theo Martin", "theo.demo@example.com"),
     ("Ines Ozola", "ines.demo@example.com"),
+    ("Sam Okafor", "sam.demo@example.com"),
 ]
+SHARED = [(3, 0)]   # (user index, joins the kitchen of user index): Sam shares Maya's kitchen
 # Each demo household: (user index, people, nights, budget, avoid, weeks). A week is
 # (days ago it started, [(topper key, cooked days after start or None)], [keys said no to], shopped days after start or None).
 DEMO_KITCHENS = [
@@ -53,23 +55,29 @@ def load():
         u.update(display_name=name, is_demo=True, signed_up=C.now() - dt.timedelta(days=30))
         users.append(u)
     today = C.now().date()
+    kitchens = {}
     for who, people, nights, budget, avoid, weeks in DEMO_KITCHENS:
         owner = users[who]
-        app_tables.kitchens.add_row(owner=owner, people=people, nights=nights, budget=budget, avoid=avoid, never=[],
+        kitchens[who] = app_tables.kitchens.add_row(owner=owner, people=people, nights=nights, budget=budget, avoid=avoid, never=[],
                                     no_counts={}, confirmed=True, created=C.now() - dt.timedelta(days=20), is_demo=True)
         for ago, slots, nos, shopped in weeks:
             start = today - dt.timedelta(days=ago)
             app_tables.weeks.add_row(
-                owner=owner, started=start, is_demo=True, checked=[], updated=C.now(),
+                kitchen=kitchens[who], owner=owner, started=start, is_demo=True, checked=[], updated=C.now(),
                 created=C.now() - dt.timedelta(days=ago),
                 shopped=None if shopped is None else start + dt.timedelta(days=shopped),
                 slots=[{"key": k, "cooked": None if c is None else (start + dt.timedelta(days=c)).isoformat()} for k, c in slots],
                 nos=[{"key": k, "by": None} for k in nos])
+    for who, host in SHARED:
+        users[who]["kitchen"] = kitchens[host]
     C.set_setting("demo", "loaded")
     return counts()
 
 
 def remove(remember=True):
+    for u in app_tables.users.search():   # real people who joined a demo kitchen go back to their own
+        if u["kitchen"] is not None and u["kitchen"]["is_demo"]:
+            u["kitchen"] = None
     for name in DEMO_TABLES:
         for r in getattr(app_tables, name).search(is_demo=True):
             r.delete()

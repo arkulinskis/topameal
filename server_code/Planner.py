@@ -71,10 +71,10 @@ def replacement(kitchen, others, exclude, rng=None):
 
 
 def order(slots):
-    """Cooked first (as they were), then the rest most-perishable first."""
+    """Cooked first (as they were), then tonight's pick ("too tired"), then the rest most-perishable first."""
     done = [s for s in slots if s.get("cooked")]
     todo = [s for s in slots if not s.get("cooked")]
-    todo.sort(key=lambda s: R.keeps(R.BY_KEY[s["key"]]) if s["key"] in R.BY_KEY else 999)
+    todo.sort(key=lambda s: (0 if s.get("pin") else 1, R.keeps(R.BY_KEY[s["key"]]) if s["key"] in R.BY_KEY else 999))
     return done + todo
 
 
@@ -97,8 +97,15 @@ def grocery_text(gkey, qty):
     return "%d %s" % (qty, one if qty == 1 else many)
 
 
+def ticks(value):
+    """The week's ticked lines as {grocery key: first name of who ticked it} (older rows stored a list)."""
+    if isinstance(value, dict):
+        return dict(value)
+    return {k: "" for k in (value or [])}
+
+
 def shopping(keys, people, checked=()):
-    """The merged list for these toppers, grouped by aisle in walking order."""
+    """The merged list for these toppers, grouped by aisle in walking order. `checked`: ticks() dict or a list."""
     acc, order_seen = {}, []
     for key in keys:
         t = R.BY_KEY.get(key)
@@ -111,7 +118,7 @@ def shopping(keys, people, checked=()):
             acc[g]["amount"] += amount
             if t["name"] not in acc[g]["for"]:
                 acc[g]["for"].append(t["name"])
-    checked = set(checked or [])
+    checked = ticks(checked)
     aisles, total, done = [], 0, 0
     for aisle, label in R.AISLES:
         items = []
@@ -121,7 +128,7 @@ def shopping(keys, people, checked=()):
                 continue
             qty = scaled(acc[g]["amount"], people, mode)
             items.append({"key": g, "text": grocery_text(g, qty), "for": acc[g]["for"], "checked": g in checked,
-                          "keeps": keeps, "perishable": keeps <= 3})
+                          "by": checked.get(g) or None, "keeps": keeps, "perishable": keeps <= 3})
         items.sort(key=lambda i: (i["keeps"], i["text"]) if aisle == "meat" else (i["text"].split(" ", 1)[1],))
         if items:
             total += len(items)
@@ -183,6 +190,14 @@ def schedule(slots, today, shopped=None):
             pos += 1
         out.append(card)
     return out
+
+
+def easiest(slots):
+    """For "too tired tonight": the uncooked slot with the fewest dishes, then the fewest minutes."""
+    todo = [s for s in slots if not s.get("cooked") and s["key"] in R.BY_KEY]
+    if not todo:
+        return None
+    return min(todo, key=lambda s: (len(R.BY_KEY[s["key"]]["dishes"]), R.BY_KEY[s["key"]]["minutes"], todo.index(s)))["key"]
 
 
 def tier_of(keys):

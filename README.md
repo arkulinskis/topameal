@@ -14,7 +14,8 @@ Sign-up with email and password, a feedback form, and the Privacy & Terms page.
 **For members** (three tabs on a phone: This week, Shopping, You):
 - **This week** (`#home`): made automatically on the first visit, with Mom's guesses (2 people, 4 dinners, comfortable
   budget) shown once with "That's right" / "Change". Mom's handwritten note greets you and says the one thing to do next.
-  Before shopping: a "Go shopping, once" card. After: a **Tonight** card with "Let's cook".
+  Before shopping: a "Go shopping, once" card. After: a **Tonight** card with "Let's cook" and **Too tired tonight**
+  (the easiest dinner left, fewest dishes then quickest, moves to tonight; if what it bumps won't keep, Mom says freeze it).
   The dinners are listed most perishable first, each with base, minutes, dishes to wash, price tier ($ / $$ / $$$), and
   "Keeps N days" (before shopping) or "Cook by Thursday" (after). A freezer tip appears when a dinner is planned after its
   meat would go off; "Past its best? Sniff test first" when it's late.
@@ -27,6 +28,10 @@ Sign-up with email and password, a feedback form, and the Privacy & Terms page.
   days; undoable).
 - **Cook** (`#cook/<key>`): what to get out ("That's all you'll wash"), the base first with amounts for the household,
   ingredients scaled, big tappable steps, Mom's tip, **I cooked it** (hearts float up, Mom is proud).
+- **Shared household:** "Share my kitchen" (You, or Share on the list) gives an invite link `#join/<code>`. Whoever opens it
+  (signing up first if needed) joins: one plan, one list, one set of settings. The list picks up other people's ticks every
+  few seconds while open and shows "Sam got it" (and a toast for new ones). The owner can remove people and make a new link;
+  others can leave, which brings their own plan back. Up to 8 people. "Shared with …" shows on This week.
 - When every dinner is cooked: "You fed yourself all week" and **Plan next week** (avoids last week's dinners).
   "Start a whole new week" at the bottom any time.
 - **You** (`#profile`): Your kitchen (people 1-8, dinners 2-7, budget, things you don't eat: vegetarian, no pork/beef/
@@ -41,7 +46,7 @@ frozen shrimp.
 - **Kitchen:** every topper with how often it's planned, refused and cooked (spot the ones people skip).
 - **Feedback inbox:** New / Read / Done, private notes.
 - **Users:** search, make admin, disable an account.
-- **Demo data:** three demo households with plans, so the Kitchen stats aren't empty; remove or reload it.
+- **Demo data:** three demo households with plans (Sam shares Maya's kitchen), so the Kitchen stats aren't empty; remove or reload it.
 
 ## Setting it up in Anvil (once)
 

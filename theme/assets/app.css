@@ -274,6 +274,15 @@ html.ui-modal-open { overflow: hidden; }
 .tm-flag.warn { background: var(--c-warn-soft); color: var(--c-warn); }
 .tm-flag.bad { background: var(--c-bad-soft); color: var(--c-bad); }
 
+/* the household */
+.tm-people { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tm-person { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; border-radius: 999px; background: var(--c-surface-2); font-weight: 700; font-size: .92rem; }
+.tm-person .ui-avatar { width: 28px; height: 28px; font-size: .72rem; }
+.tm-person em { font-style: normal; font-weight: 600; color: var(--c-faint); font-size: .82rem; }
+.tm-person .ui-btn { margin-right: -8px; }
+.tm-link { display: flex; gap: 8px; margin: 14px 0 10px; }
+.tm-link input { font-size: .9rem !important; }
+
 /* hearts when you've cooked */
 .tm-hearts { position: fixed; inset: 0; pointer-events: none; z-index: 1200; overflow: hidden; }
 .tm-hearts span { position: absolute; bottom: -40px; color: var(--c-brand); font-size: 26px; animation: tm-rise 2.2s ease-out forwards; }
@@ -382,6 +391,8 @@ html.ui-modal-open { overflow: hidden; }
 .wk-card.is-new { animation: wk-new .6s ease-out both; }
 .wk-card .tip { margin: 10px 0 0; font-size: .9rem; color: var(--c-muted); display: flex; gap: 8px; }
 .wk-card .tip .ui-ic { color: var(--c-brand); margin-top: 2px; }
+.wk-with { display: flex; gap: 8px; align-items: center; margin: -8px 4px 18px; }
+.wk-with .ui-ic { color: var(--c-brand); }
 .wk-sum { margin: 18px 4px 0; color: var(--c-muted); font-size: .95rem; }
 .wk-tray { margin-top: 30px; }
 .wk-tray .chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -399,6 +410,16 @@ html.ui-modal-open { overflow: hidden; }
   .wk-hero .top .tm-base { display: none; }
   .wk-card { padding: 14px; gap: 12px; }
 }
+
+/* ===== join.html ===== */
+.jn { max-width: 560px; text-align: center; padding-top: 48px; }
+.jn .pan { width: 84px; height: 84px; border-radius: 26px; margin: 0 auto 18px; display: grid; place-items: center; background: var(--c-brand-soft); color: var(--c-brand); transform: rotate(-4deg); }
+.jn .pan .ui-ic { width: 44px; height: 44px; }
+.jn h1 { font-size: clamp(1.9rem, 6vw, 2.6rem); }
+.jn .tm-note { text-align: left; margin: 22px 0; }
+.jn .tm-people { justify-content: center; margin: 4px 0 24px; }
+.jn .ui-row { justify-content: center; }
+.jn .fine { margin-top: 16px; }
 
 /* ===== landing.html ===== */
 .page-landing .ui-main { overflow-x: clip; }
@@ -505,6 +526,14 @@ html.ui-modal-open { overflow: hidden; }
 .sl-item .what { font-weight: 700; display: block; }
 .sl-item .for { font-size: .85rem; color: var(--c-faint); display: block; margin-top: 2px; }
 .sl-item.on .what { color: var(--c-faint); text-decoration: line-through; }
+.sl-item .by { display: none; font-size: .8rem; font-weight: 800; color: var(--c-good); margin-top: 3px; }
+.sl-item.on .by:not(:empty) { display: block; }
+.sl-with { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .9rem; color: var(--c-muted); margin: -6px 0 16px; }
+.sl-with .ui-ic { color: var(--c-brand); }
+.sl-with { flex-wrap: nowrap; }
+.sl-with > span:last-child { min-width: 0; }
+.sl-with .live { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--c-good); animation: sl-pulse 2s ease-in-out infinite; }
+@keyframes sl-pulse { 50% { opacity: .3; } }
 .sl-item .tm-flag { margin-top: 6px; font-size: .78rem; padding: 2px 8px; }
 .sl-done { margin-top: 26px; display: grid; gap: 10px; justify-items: center; text-align: center; }
 .sl-done .ui-btn.lg { width: min(100%, 420px); }

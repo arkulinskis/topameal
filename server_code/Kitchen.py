@@ -1,12 +1,17 @@
-"""The member's kitchen (household settings) and their week: Mom's plan, the no-thanks tray, cooking, shopping.
+"""The household's kitchen (settings) and its week: Mom's plan, the no-thanks tray, cooking, shopping,
+"too tired tonight", and sharing the kitchen with the people you live with.
 
-Tables: kitchens (one per user), weeks (one row per plan; the newest is the current one).
+Tables: kitchens (one per owner; others join through users.kitchen), weeks (one row per plan, belonging to a
+kitchen; the newest `created` is the current one). A user's kitchen is users.kitchen if they joined one,
+otherwise their own (made on first use). Leaving sets users.kitchen back to None: their own plan returns.
+Everyone in a household can see and change the plan, the list and the settings; only the owner removes people.
 simpleObject columns are always reassigned whole (Anvil doesn't save changes made inside a list).
 Every callable takes the browser's local date (`today`, YYYY-MM-DD) so "tonight" and cook-by dates match
 the person's day; it is clamped to within 2 days of the server's date.
 """
 import datetime as dt
 import random
+import secrets
 
 import anvil.server
 from anvil.tables import app_tables
@@ -20,6 +25,7 @@ from . import Recipes as R
 DEFAULTS = {"people": 2, "nights": 4, "budget": 2}
 PLAN_DAYS = 9          # a plan older than this is replaced by a fresh one when the member comes back
 NEVER_AFTER = 3        # saying no to the same topper this many times puts it on the never list
+MAX_MEMBERS = 8
 
 
 def today_of(value):
@@ -32,13 +38,30 @@ def today_of(value):
 
 
 # ------------------------------------------------------------------------------------------- kitchen
-def kitchen_row(user):
+def own_kitchen(user, create=True):
     k = app_tables.kitchens.get(owner=user)
-    if k is None:
+    if k is None and create:
         k = app_tables.kitchens.add_row(owner=user, people=DEFAULTS["people"], nights=DEFAULTS["nights"],
                                         budget=DEFAULTS["budget"], avoid=[], never=[], no_counts={},
                                         confirmed=False, created=C.now(), is_demo=bool(user["is_demo"]))
     return k
+
+
+def kitchen_row(user):
+    """The kitchen this user cooks from: a household they joined, or their own."""
+    return user["kitchen"] or own_kitchen(user)
+
+
+def members(k):
+    """Everyone sharing kitchen k: the owner first (if they still cook here), then who joined, oldest first."""
+    owner = k["owner"]
+    out = [owner] if owner is not None and owner["kitchen"] in (None, k) else []
+    joined = sorted((u for u in app_tables.users.search(kitchen=k) if u != owner), key=lambda u: u["signed_up"] or C.now())
+    return out + joined
+
+
+def first_name(user):
+    return C.name_of(user).split(" ")[0]
 
 
 def kitchen_plain(k):
@@ -46,35 +69,42 @@ def kitchen_plain(k):
             "avoid": list(k["avoid"] or []), "never": list(k["never"] or [])}
 
 
-def kitchen_dict(k):
+def kitchen_dict(k, user=None):
     d = kitchen_plain(k)
     d["never"] = [{"key": key, "name": R.name_of(key)} for key in d["never"] if key in R.BY_KEY]
     d["confirmed"] = bool(k["confirmed"])
     d["options"] = {"avoid": [{"key": a, "label": label} for a, label in R.AVOID],
                     "budget": [{"key": n, "label": R.TIERS[n]} for n in (1, 2, 3)]}
+    people = members(k)
+    d["household"] = [{"id": u.get_id(), "name": C.name_of(u), "me": u == user, "owner": u == k["owner"]} for u in people]
+    d["is_owner"] = user is not None and user == k["owner"]
+    d["shared"] = len(people) > 1
     return d
 
 
 # ------------------------------------------------------------------------------------------- weeks
-def _weeks(user):
-    return app_tables.weeks.search(tables.order_by("created", ascending=False), owner=user)
+def _weeks(k):
+    return app_tables.weeks.search(tables.order_by("created", ascending=False), kitchen=k)
 
 
-def _latest(user):
+def _latest(k):
     """The current plan: the newest one made (two plans can start on the same day)."""
-    return next(iter(_weeks(user)), None)
+    return next(iter(_weeks(k)), None)
 
 
 def _new_week(user, k, today, avoid_keys=()):
     kp = kitchen_plain(k)
     keys = P.pick(kp["nights"], kp, soft_exclude=avoid_keys)
     slots = P.order([{"key": key, "cooked": None} for key in keys])
-    return app_tables.weeks.add_row(owner=user, started=today, slots=slots, nos=[], checked=[], shopped=None,
-                                    created=C.now(), updated=C.now(), is_demo=bool(user["is_demo"]))
+    stamp, prev = C.now(), _latest(k)
+    if prev is not None and prev["created"] is not None and stamp <= prev["created"]:
+        stamp = prev["created"] + dt.timedelta(microseconds=1)   # the newest plan must sort first, even within one clock tick
+    return app_tables.weeks.add_row(kitchen=k, owner=user, started=today, slots=slots, nos=[], checked={}, shopped=None,
+                                    created=stamp, updated=C.now(), is_demo=bool(user["is_demo"]))
 
 
 def current_week(user, k, today):
-    w = _latest(user)
+    w = _latest(k)
     if w is not None and (today - w["started"]).days <= PLAN_DAYS:
         return w
     last = [s["key"] for s in (w["slots"] if w else [])]
@@ -87,7 +117,7 @@ def week_dict(user, w, k, today):
     cards = P.schedule(slots, today, w["shopped"])
     todo = [c for c in cards if not c["cooked"]]
     kp = kitchen_plain(k)
-    history = list(_weeks(user))
+    history = list(_weeks(k))
     return {"id": w.get_id(), "started": C.iso(w["started"]), "shopped": C.iso(w["shopped"]),
             "slots": cards, "next": todo[0]["key"] if todo else None, "all_done": bool(cards) and not todo,
             "nos": [{"key": n["key"], "name": R.name_of(n["key"]), "auto": bool(n.get("auto"))}
@@ -99,7 +129,7 @@ def week_dict(user, w, k, today):
 
 
 def _reply(user, w, k, today, note=None, **extra):
-    out = {"week": week_dict(user, w, k, today), "kitchen": kitchen_dict(k), "note": note}
+    out = {"week": week_dict(user, w, k, today), "kitchen": kitchen_dict(k, user), "note": note}
     out.update(extra)
     return C.ok(**out)
 
@@ -226,11 +256,21 @@ def set_checked(item, flag=True, today=None):
         return C.fail("That isn't on the list.")
     today = today_of(today)
     w = current_week(user, kitchen_row(user), today)
-    checked = [c for c in (w["checked"] or []) if c != item]
+    checked = P.ticks(w["checked"])
+    checked.pop(item, None)
     if flag:
-        checked.append(item)
+        checked[item] = first_name(user)
     _save(w, checked=checked)
     return C.ok(checked=len(checked))
+
+
+@anvil.server.callable(require_user=True)
+def get_ticks(today=None):
+    """Polled by the shopping list while a household shops together: who ticked what, and whether it's done."""
+    user = C.require_user()
+    w = current_week(user, kitchen_row(user), today_of(today))
+    return {"week": w.get_id(), "checked": P.ticks(w["checked"]), "shopped": C.iso(w["shopped"]),
+            "slots": [s["key"] for s in (w["slots"] or [])]}
 
 
 @anvil.server.callable(require_user=True)
@@ -243,7 +283,9 @@ def set_shopped(flag=True, today=None):
     cols = {"shopped": today if flag else None}
     if flag:
         keys = [s["key"] for s in (w["slots"] or [])]
-        cols["checked"] = [i["key"] for a in P.shopping(keys, 2)["aisles"] for i in a["items"]]
+        ticked = P.ticks(w["checked"])
+        name = first_name(user)
+        cols["checked"] = {i["key"]: ticked.get(i["key"]) or name for a in P.shopping(keys, 2)["aisles"] for i in a["items"]}
     _save(w, **cols)
     return _reply(user, w, k, today)
 
@@ -256,7 +298,7 @@ def new_plan(today=None):
     k = kitchen_row(user)
     if C.rate_limited("new_plan", 20, 3600):
         return C.fail("That's a lot of new plans in one hour. Let's stick with this one for now, love.")
-    old = _latest(user)
+    old = _latest(k)
     avoid = [s["key"] for s in (old["slots"] if old else [])]
     w = _new_week(user, k, today, avoid)
     return _reply(user, w, k, today, "Here's a fresh week. Same deal: say no to anything you don't fancy.")
@@ -285,7 +327,7 @@ def get_cook(key, today=None):
 @anvil.server.callable(require_user=True)
 def get_kitchen():
     user = C.require_user()
-    return C.ok(kitchen=kitchen_dict(kitchen_row(user)))
+    return C.ok(kitchen=kitchen_dict(kitchen_row(user), user))
 
 
 @anvil.server.callable(require_user=True)
@@ -353,6 +395,113 @@ def sample_week():
     keys = [s["key"] for s in P.order([{"key": key, "cooked": None} for key in P.pick(4, kp)])]
     return {"slots": [P.topper_card(R.BY_KEY[key]) for key in keys], "list": P.shopping(keys, 2),
             "totals": P.totals(keys), "shared": P.shared(keys), "at_home": R.AT_HOME}
+
+
+@anvil.server.callable(require_user=True)
+def too_tired(today=None):
+    """"Too tired tonight": the easiest dinner left (fewest dishes, then quickest) moves to tonight."""
+    user = C.require_user()
+    today = today_of(today)
+    k = kitchen_row(user)
+    w = current_week(user, k, today)
+    slots = [dict(s) for s in (w["slots"] or [])]
+    todo = [s for s in slots if not s.get("cooked")]
+    if len(todo) < 2:
+        return _reply(user, w, k, today, "This is the last one, love. Or toast. Toast is dinner too.")
+    current = todo[0]["key"]
+    easy = P.easiest(todo)
+    if easy == current:
+        return _reply(user, w, k, today, "This is already the easiest one, love. Or toast. Toast is dinner too.")
+    for s in slots:
+        s.pop("pin", None)
+        if s["key"] == easy and not s.get("cooked"):
+            s["pin"] = today.isoformat()
+    _save(w, slots=P.order(slots))
+    t, was = R.BY_KEY[easy], R.BY_KEY[current]
+    note = "Then let's do %s tonight. Only %d things to wash." % (t["name"].lower(), len(t["dishes"]) + 1)
+    if w["shopped"] and R.keeps(was) <= 3:
+        note += " Put the %s in the freezer now; it won't wait." % P.perishable_item(was)
+    return _reply(user, w, k, today, note, tonight=easy)
+
+
+# ------------------------------------------------------------------------------------------- household
+def _code():
+    return secrets.token_urlsafe(9).replace("-", "x").replace("_", "y")
+
+
+def _by_code(code):
+    if not isinstance(code, str) or not 6 <= len(code) <= 40:
+        return None
+    return app_tables.kitchens.get(invite_code=code)
+
+
+@anvil.server.callable(require_user=True)
+def get_invite(fresh=False):
+    """The invite code for the caller's household (made on first use). fresh=True makes a new one, so the
+    old link stops working (owner only)."""
+    user = C.require_user()
+    k = kitchen_row(user)
+    if fresh:
+        if k["owner"] != user:
+            return C.fail("Only %s can make a new link." % first_name(k["owner"]))
+        k["invite_code"] = None
+    if not k["invite_code"]:
+        k["invite_code"] = _code()
+    return C.ok(code=k["invite_code"], kitchen=kitchen_dict(k, user))
+
+
+@anvil.server.callable
+def peek_invite(code):
+    """The join page: whose kitchen this link is for (first names only), before signing in or joining."""
+    if C.rate_limited("peek_invite", 30, 3600):
+        return C.fail("Too many tries. Please wait a little and open the link again.")
+    k = _by_code(code)
+    if k is None:
+        return C.fail("This invite link doesn't work any more. Ask for a new one.")
+    user = C.me()
+    names = [first_name(u) for u in members(k)]
+    return C.ok(owner=first_name(k["owner"]), names=names, full=len(names) >= MAX_MEMBERS,
+                member=user is not None and kitchen_row(user) == k)
+
+
+@anvil.server.callable(require_user=True)
+def join_household(code, today=None):
+    user = C.require_user()
+    if C.rate_limited("join", 20, 3600):
+        return C.fail("Too many tries. Please wait a little.")
+    k = _by_code(code)
+    if k is None:
+        return C.fail("This invite link doesn't work any more. Ask for a new one.")
+    if kitchen_row(user) == k:
+        return C.ok(note="You're already in this kitchen.")
+    if len(members(k)) >= MAX_MEMBERS:
+        return C.fail("That kitchen is full (%d people)." % MAX_MEMBERS)
+    user["kitchen"] = None if k["owner"] == user else k
+    return C.ok(note="You're in. Same plan, same list, from now on.")
+
+
+@anvil.server.callable(require_user=True)
+def leave_household():
+    """Back to your own kitchen and your own plan."""
+    user = C.require_user()
+    if user["kitchen"] is None:
+        return C.fail("This is your own kitchen, love. You can't leave it.")
+    user["kitchen"] = None
+    return C.ok(kitchen=kitchen_dict(kitchen_row(user), user), note="Back in your own kitchen.")
+
+
+@anvil.server.callable(require_user=True)
+def remove_member(user_id):
+    """The owner takes someone out of their kitchen (they go back to their own)."""
+    me = C.require_user()
+    k = kitchen_row(me)
+    if k["owner"] != me:
+        return C.fail("Only %s can do that." % first_name(k["owner"]))
+    other = C.row_by_id(app_tables.users, user_id)
+    if other is None or other == me or other["kitchen"] != k:
+        return C.fail("That person isn't in your kitchen.")
+    other["kitchen"] = None
+    return C.ok(kitchen=kitchen_dict(k, me))
 
 
 # ------------------------------------------------------------------------------------------- admin

@@ -481,6 +481,8 @@
   I.snow = '<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/><path d="m9.5 4.5 2.5 2 2.5-2M9.5 19.5l2.5-2 2.5 2"/>';
   I.undo = '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>';
   I.week = '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M12 17.2s-2.6-1.6-2.6-3.3a1.3 1.3 0 0 1 2.6-.5 1.3 1.3 0 0 1 2.6.5c0 1.7-2.6 3.3-2.6 3.3z"/>';
+  I.share = '<circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="5.5" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/><path d="m8.4 10.8 7.2-4M8.4 13.2l7.2 4"/>';
+  I.sofa = '<path d="M4 11V8a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3"/><path d="M2.5 13a2 2 0 0 1 4 0v1.5h11V13a2 2 0 0 1 4 0v5h-19z"/><path d="M5 18v2M19 18v2"/>';
   I.fridge = '<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M6 10h12M9 6v1.5M9 13v2.5"/>';
 
   var esc = UI.esc;
@@ -555,6 +557,43 @@
     list: function (words) {  // ["a", "b", "c"] -> "a, b and c"
       if (words.length < 2) return words.join('');
       return words.slice(0, -1).join(', ') + ' and ' + words[words.length - 1];
+    },
+    people: function (list, opts) {
+      opts = opts || {};
+      return '<div class="tm-people">' + list.map(function (p) {
+        return '<span class="tm-person"><span class="ui-avatar">' + esc(UI.initials(p.name)) + '</span>' + esc(p.name) +
+          (p.me ? ' <em>you</em>' : '') + (p.owner && !p.me ? ' <em>started it</em>' : '') +
+          (opts.remove && !p.me ? '<button type="button" class="ui-btn ghost icon sm" data-remove="' + esc(p.id) + '" aria-label="Remove ' + esc(p.name) + '">' + UI.icon('x') + '</button>' : '') +
+          '</span>';
+      }).join('') + '</div>';
+    },
+    /* "Share my kitchen": the invite link, Copy / Share, and (owner) a new link. onchange(kitchen) after a new link. */
+    invite: function () {
+      var m = UI.modal('<h2>Share your kitchen</h2><p class="muted">Send this link to the people you live with. When they open it, they join your kitchen: ' +
+        'one plan, one shopping list, and everyone can tick things off.</p><div data-inv><div class="ui-skel" style="min-height:120px"></div></div>');
+      function link(code) { return location.origin + location.pathname + '#join/' + code; }
+      function draw(r) {
+        var url = link(r.code), k = r.kitchen;
+        m.el.querySelector('[data-inv]').innerHTML = '<div class="tm-link"><input type="text" readonly value="' + esc(url) + '" aria-label="Invite link">' +
+          '<button class="ui-btn primary" data-inv-copy>' + UI.icon('copy') + 'Copy</button></div>' +
+          (navigator.share ? '<button class="ui-btn block" data-inv-share>' + UI.icon('share') + 'Send it with…</button>' : '') +
+          (k.shared ? '<p class="small muted" style="margin-top:16px">In this kitchen now:</p>' + TM.people(k.household) : '') +
+          (k.is_owner ? '<p class="small muted" style="margin:16px 0 0">Sent it to the wrong person? <button class="ui-btn ghost sm" data-inv-new>Make a new link</button> (the old one stops working).</p>' : '');
+      }
+      UI.api('get_invite').then(draw);
+      m.el.addEventListener('click', function (e) {
+        var input = m.el.querySelector('.tm-link input');
+        if (e.target.closest('[data-inv-copy]')) {
+          var done = function () { UI.toast('Link copied. Send it to them however you like.', 'ok'); };
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(input.value).then(done, function () { input.select(); });
+          else { input.select(); }
+        } else if (e.target.closest('[data-inv-share]')) {
+          navigator.share({ title: 'Share my kitchen on Topameal', text: 'Join my kitchen on Topameal: same dinners, same shopping list.', url: input.value }).catch(function () {});
+        } else if (e.target.closest('[data-inv-new]')) {
+          UI.busy(e.target.closest('[data-inv-new]'), UI.api('get_invite', true)).then(function (r) { draw(r); UI.toast('New link made. The old one no longer works.', 'ok'); });
+        }
+      });
+      return m;
     },
     proud: ['Proud of you.', 'Look at you, feeding yourself properly.', 'That\'s my kid.', 'Well done, love. Now sit down and eat.',
             'See? You can do it.', 'Lovely. Soak the pan while you eat.']
@@ -848,7 +887,9 @@
     var label = next.past_best ? 'Check this one first' : (next.cook_by && TM.daysFrom(next.cook_by) <= 0 ? 'Tonight, please' : 'Tonight');
     return '<section class="wk-hero"><div class="top">' + TM.baseIcon(next.base, true) + '<div><div class="eyebrow">' + esc(label) + '</div>' +
       '<h2>' + esc(next.name) + '</h2><p class="blurb">' + esc(next.blurb) + '</p>' + TM.meta(next) + '</div></div>' +
-      '<div class="ui-row"><a class="ui-btn primary lg" href="#cook/' + esc(next.key) + '" data-go="cook/' + esc(next.key) + '">' + UI.icon('pan') + 'Let\'s cook</a></div></section>';
+      '<div class="ui-row"><a class="ui-btn primary lg" href="#cook/' + esc(next.key) + '" data-go="cook/' + esc(next.key) + '">' + UI.icon('pan') + 'Let\'s cook</a>' +
+      (w.slots.filter(function (s) { return !s.cooked; }).length > 1 ? '<button class="ui-btn ghost" data-tired>' + UI.icon('sofa') + 'Too tired tonight</button>' : '') +
+      '</div></section>';
   }
 
   function momLine(w, me) {
@@ -875,6 +916,10 @@
       var w = W, k = K, shopped = !!w.shopped;
       var html = '<div class="ui-wrap wk ui-narrow">';
       html += TM.note(momLine(w, me));
+      if (k.shared) {
+        var others = k.household.filter(function (p) { return !p.me; }).map(function (p) { return p.name.split(' ')[0]; });
+        html += '<p class="wk-with small muted">' + UI.icon('users') + 'Shared with ' + esc(TM.list(others)) + '. Same plan, same list.</p>';
+      }
       if (!k.confirmed) {
         html += '<div class="wk-assume" data-assume><p><b>I\'ve made a few guesses.</b> Tell me if I\'m wrong, otherwise carry on.</p><div class="facts">' +
           '<span class="ui-badge brand">' + UI.plural(k.people, 'person', 'people') + '</span>' +
@@ -937,6 +982,11 @@
         UI.busy(yes, UI.api('say_yes', freshKey, TM.today())).then(take);
         return;
       }
+      var tired = e.target.closest('[data-tired]');
+      if (tired) {
+        UI.busy(tired, UI.api('too_tired', TM.today())).then(function (r) { freshKey = r.tonight || null; take(r); });
+        return;
+      }
       if (e.target.closest('[data-confirm]')) {
         K.confirmed = true;
         var box = view.querySelector('[data-assume]'); if (box) box.remove();
@@ -958,6 +1008,57 @@
     });
 
     return UI.api('get_week', TM.today()).then(function (r) { W = r.week; K = r.kitchen; draw(); });
+  });
+})();
+
+/* ===== join.html ===== */
+(function () {
+  var esc = UI.esc;
+  UI.page('join', { title: 'Join a kitchen' }, function (view, ctx) {
+    var code = ctx.args[0] || '';
+    view.innerHTML = '<div class="ui-wrap jn ui-narrow"><div class="ui-skel" style="height:280px"></div></div>';
+
+    function draw(d) {
+      var name = esc(d.owner), html = '<div class="ui-wrap jn ui-narrow"><div class="pan" aria-hidden="true">' + UI.icon('pan') + '</div>';
+      if (d.member) {
+        view.innerHTML = html + '<h1>You\'re already in ' + name + '\'s kitchen</h1><p class="muted">Same plan, same list. Nothing to do.</p>' +
+          '<div class="ui-row"><a class="ui-btn primary lg" href="#home" data-go="home">Open this week</a></div></div>';
+        return;
+      }
+      html += '<h1>' + name + ' wants to share their kitchen</h1>' +
+        TM.note([name + '\'s asked you to share dinners with them.', 'One plan, one shopping list, and whoever is at the shop ticks things off. Fewer arguments about dinner.']) +
+        '<p class="small muted" style="margin:0 0 8px">In this kitchen:</p>' + TM.people(d.names.map(function (n) { return { name: n }; }));
+      if (d.full) {
+        html += '<p class="ui-error">This kitchen is full. Ask ' + name + ' to make some room.</p>';
+      } else if (ctx.me) {
+        html += '<div class="ui-row"><button class="ui-btn primary lg" data-join>' + UI.icon('heart') + 'Join ' + name + '\'s kitchen</button>' +
+          '<a class="ui-btn ghost" href="#home" data-go="home">Not now</a></div>' +
+          '<p class="small faint fine">Your own plan is kept aside. Leave any time in You to get it back.</p>';
+      } else {
+        html += '<div class="ui-row"><button class="ui-btn primary lg" data-auth="auth/signup">Create my account</button>' +
+          '<button class="ui-btn lg" data-auth="auth">I have an account</button></div>' +
+          '<p class="small faint fine">Free. You\'ll come straight back here to join.</p>';
+      }
+      view.innerHTML = html + '</div>';
+    }
+
+    function failed(err) {
+      view.innerHTML = '<div class="ui-wrap jn ui-narrow"><div class="ui-empty">' + UI.icon('info') + '<h3>That link didn\'t work</h3><p>' + esc(err.message) + '</p>' +
+        '<a class="ui-btn" href="#" data-go="' + (ctx.me ? 'home' : 'landing') + '">' + (ctx.me ? 'Back to this week' : 'What is Topameal?') + '</a></div></div>';
+    }
+
+    view.addEventListener('click', function (e) {
+      var a = e.target.closest('[data-auth]');
+      if (a) { UI.after = '#join/' + encodeURIComponent(code); UI.go.apply(null, a.getAttribute('data-auth').split('/')); return; }
+      var j = e.target.closest('[data-join]');
+      if (j) {
+        UI.busy(j, UI.api('join_household', code, TM.today())).then(function (r) {
+          TM.hearts(); UI.toast(r.note, 'ok'); UI.go('home');
+        });
+      }
+    });
+
+    return UI.api('peek_invite', code).then(draw, failed);
   });
 })();
 
@@ -1062,7 +1163,7 @@
   var AISLE_ICONS = { meat: 'pan', veg: 'sparkle', fridge: 'fridge', freezer: 'snow', shelf: 'grid', cupboard: 'home' };
 
   UI.page('list', { title: 'Shopping list', nav: 'Shopping', icon: 'cart', auth: 'user', order: 20 }, function (view, ctx) {
-    var W = null;
+    var W = null, K = null, me = TM.first(ctx.me), pending = {}, timer = null;
     view.innerHTML = '<div class="ui-wrap sl ui-narrow"><div class="ui-skel" style="height:90px;margin-bottom:16px"></div><div class="ui-skel" style="height:360px"></div></div>';
 
     function counts() {
@@ -1083,7 +1184,9 @@
       else lines.push('Roughly a ' + esc(T.tier_label.toLowerCase()) + ' week. Don\'t buy anything that\'s not on here.');
       var html = '<div class="ui-wrap sl ui-narrow"><div class="ui-page-head sl-head"><div><h1>Shopping list</h1>' +
         '<p class="muted">Roughly a ' + TM.tier(T.tier, T.tier_label) + ' <b>' + esc(T.tier_label.toLowerCase()) + '</b> week</p></div>' +
-        '<button class="ui-btn sm" data-copy>' + UI.icon('copy') + 'Copy list</button></div>' +
+        '<div class="ui-row"><button class="ui-btn sm" data-share>' + UI.icon('users') + 'Share</button><button class="ui-btn sm" data-copy>' + UI.icon('copy') + 'Copy list</button></div></div>' +
+        (K.shared ? '<p class="sl-with"><span class="live" aria-hidden="true"></span><span>Shopping together with ' +
+          esc(TM.list(K.household.filter(function (p) { return !p.me; }).map(function (p) { return p.name.split(' ')[0]; }))) + '. Ticks show up for everyone.</span></p>' : '') +
         TM.note(lines) +
         '<p class="sl-home"><b>Already at home:</b> ' + esc(TM.list(w.at_home)) + '. I\'m assuming.</p>';
       if (!L.total) {
@@ -1100,6 +1203,7 @@
             return '<label class="sl-item' + (it.checked ? ' on' : '') + '"><input type="checkbox" data-item="' + esc(it.key) + '"' + (it.checked ? ' checked' : '') + '>' +
               '<span class="box">' + UI.icon('check') + '</span><span><span class="what">' + esc(it.text) + '</span>' +
               '<span class="for">for ' + esc(TM.list(it.for)) + '</span>' +
+              '<span class="by" data-by>' + byText(it.by) + '</span>' +
               (it.perishable ? '<span class="tm-flag warn">' + UI.icon('fridge') + 'Fridge straight away · keeps ' + UI.plural(it.keeps, 'day') + '</span>' : '') +
               '</span></label>';
           }).join('') + '</div></section>';
@@ -1111,6 +1215,30 @@
         '</div></div>';
       view.innerHTML = html;
       progress();
+    }
+
+    function byText(by) { return by && by !== me ? esc(by) + ' got it' : ''; }
+
+    /* Shared households: pick up other people's ticks without redrawing the page. */
+    function poll() {
+      if (document.hidden || !W) return;
+      UI.apiQuiet('get_ticks', TM.today()).then(function (t) {
+        var same = t.week === W.id && t.slots.join() === W.list_keys;
+        if (!same || !!t.shopped !== !!W.shopped) { load(); return; }
+        var fresh = [];
+        view.querySelectorAll('[data-item]').forEach(function (box) {
+          var key = box.getAttribute('data-item');
+          if (pending[key]) return;
+          var by = t.checked[key], on = key in t.checked;
+          if (on && !box.checked && by && by !== me) fresh.push(by + ' got the ' + box.closest('.sl-item').querySelector('.what').textContent.replace(/^\d+ /, ''));
+          box.checked = on;
+          var row = box.closest('.sl-item');
+          row.classList.toggle('on', on);
+          row.querySelector('[data-by]').innerHTML = on ? byText(by) : '';
+        });
+        progress();
+        if (fresh.length && fresh.length <= 2) UI.toast(fresh.join('. ') + '.');
+      }, function () {});
     }
 
     function asText() {
@@ -1130,10 +1258,14 @@
     view.addEventListener('change', function (e) {
       var box = e.target.closest('[data-item]');
       if (!box) return;
+      var key = box.getAttribute('data-item');
       box.closest('.sl-item').classList.toggle('on', box.checked);
+      box.closest('.sl-item').querySelector('[data-by]').innerHTML = '';
       progress();
-      UI.apiQuiet('set_checked', box.getAttribute('data-item'), box.checked, TM.today()).catch(function (err) {
-        box.checked = !box.checked; box.closest('.sl-item').classList.toggle('on', box.checked); progress(); throw err;
+      pending[key] = (pending[key] || 0) + 1;
+      var settle = function () { pending[key] -= 1; if (!pending[key]) delete pending[key]; };
+      UI.apiQuiet('set_checked', key, box.checked, TM.today()).then(settle, function (err) {
+        settle(); box.checked = !box.checked; box.closest('.sl-item').classList.toggle('on', box.checked); progress(); throw err;
       });
       var c = counts();
       if (box.checked && c.done === c.total && !W.shopped) UI.toast('That\'s everything! Tap "I\'ve done the shopping" when you\'re home.', 'ok');
@@ -1148,7 +1280,8 @@
         return;
       }
       b = e.target.closest('[data-unshop]');
-      if (b) { UI.busy(b, UI.api('set_shopped', false, TM.today())).then(function (r) { W = r.week; draw(); }); return; }
+      if (b) { UI.busy(b, UI.api('set_shopped', false, TM.today())).then(take); return; }
+      if (e.target.closest('[data-share]')) { TM.invite(); return; }
       if (e.target.closest('[data-copy]')) {
         var text = asText();
         var done = function () { UI.toast('Copied. Paste it anywhere, or send it to whoever\'s shopping.', 'ok'); };
@@ -1161,7 +1294,16 @@
       var ta = m.el.querySelector('textarea'); ta.focus(); ta.select();
     }
 
-    return UI.api('get_week', TM.today()).then(function (r) { W = r.week; draw(); });
+    function take(r) {
+      W = r.week; K = r.kitchen;
+      W.list_keys = W.slots.map(function (s) { return s.key; }).join();
+      draw();
+      if (timer) { clearInterval(timer); timer = null; }
+      if (K.shared && !W.shopped) timer = setInterval(poll, 6000);
+    }
+    function load() { return UI.apiQuiet('get_week', TM.today()).then(take); }
+
+    return { ready: UI.api('get_week', TM.today()).then(take), destroy: function () { if (timer) clearInterval(timer); } };
   });
 })();
 
@@ -1173,6 +1315,7 @@
     view.innerHTML = '<div class="ui-wrap ui-narrow"><div class="pf-head"><span class="ui-avatar">' + esc(UI.initials(me.name)) + '</span>' +
       '<div><h1>' + esc(me.name) + '</h1><div class="muted">' + esc(me.email) + (me.joined ? ' · member since ' + esc(UI.fmtDate(me.joined, { month: 'long', year: 'numeric' })) : '') + '</div></div></div>' +
       '<form class="ui-card kc" data-kitchen style="margin-bottom:16px"><div class="ui-skel"></div></form>' +
+      '<section class="ui-card kc" data-house style="margin-bottom:16px"></section>' +
       '<div class="pf-grid"><form class="ui-card ui-stack" data-name><h3>Your name</h3><label class="ui-field"><span>What should I call you?</span>' +
       '<input type="text" name="name" value="' + esc(me.name) + '" maxlength="60" required></label><button class="ui-btn primary" type="submit">Save</button></form>' +
       '<div class="ui-card ui-stack"><h3>Appearance</h3><p class="muted small">Follow your device, or pick one.</p><div data-theme-box></div>' +
@@ -1249,10 +1392,36 @@
       var data = { people: K.people, nights: K.nights, budget: K.budget, avoid: picked(),
         never: K.never.filter(function (n) { return !n.gone; }).map(function (n) { return n.key; }) };
       UI.busy(kbox.querySelector('[type=submit]'), UI.api('save_kitchen', data, TM.today())).then(function (r) {
-        K = r.kitchen; kitchen(); UI.toast(r.note || 'Saved', 'ok');
+        K = r.kitchen; kitchen(); house(); UI.toast(r.note || 'Saved', 'ok');
       });
     });
-    var ready = UI.api('get_kitchen').then(function (r) { K = r.kitchen; kitchen(); });
+    // ---- your household
+    var hbox = view.querySelector('[data-house]');
+    function house() {
+      var owner = K.household.filter(function (p) { return p.owner; })[0];
+      hbox.innerHTML = '<h2>Your household</h2><p class="muted small">' + (K.shared
+        ? 'You share one plan, one shopping list and these settings' + (K.is_owner ? '.' : ' with ' + esc(owner ? owner.name.split(' ')[0] : 'them') + '.') + ' Everyone can tick things off.'
+        : 'Live with someone? Share your kitchen: one plan, one shopping list, and whoever is at the shop can tick things off.') + '</p>' +
+        (K.shared ? TM.people(K.household, { remove: K.is_owner }) : '') +
+        '<div class="ui-row" style="margin-top:14px"><button type="button" class="ui-btn" data-invite>' + UI.icon('share') + (K.shared ? 'Invite someone else' : 'Share my kitchen') + '</button>' +
+        (!K.is_owner ? '<button type="button" class="ui-btn ghost" data-leave>' + UI.icon('logout') + 'Leave this kitchen</button>' : '') + '</div>';
+    }
+    hbox.addEventListener('click', function (e) {
+      if (e.target.closest('[data-invite]')) { TM.invite(); return; }
+      var rm = e.target.closest('[data-remove]');
+      if (rm) {
+        var who = rm.closest('.tm-person').textContent.trim();
+        UI.confirm({ title: 'Take ' + who + ' out of your kitchen?', text: 'They go back to their own plan. You can invite them again any time.', ok: 'Take them out', danger: true })
+          .then(function (yes) { if (yes) UI.api('remove_member', rm.getAttribute('data-remove')).then(function (r) { K = r.kitchen; house(); UI.toast('Done.', 'ok'); }); });
+        return;
+      }
+      if (e.target.closest('[data-leave]')) {
+        UI.confirm({ title: 'Leave this kitchen?', text: 'You go back to your own plan and list. They keep theirs.', ok: 'Leave' })
+          .then(function (yes) { if (yes) UI.api('leave_household').then(function (r) { K = r.kitchen; kitchen(); house(); UI.toast(r.note, 'ok'); }); });
+      }
+    });
+
+    var ready = UI.api('get_kitchen').then(function (r) { K = r.kitchen; kitchen(); house(); });
 
     view.querySelector('[data-name]').addEventListener('submit', function (e) {
       e.preventDefault();
