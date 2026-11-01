@@ -423,34 +423,48 @@ html.ui-modal-open { overflow: hidden; }
 
 /* ===== landing.html ===== */
 .page-landing .ui-main { overflow-x: clip; }
-.lp-hero { position: relative; padding: 56px 0 34px; }
+/* Rolling-cover hero: the whole hero is Mom's gingham tablecloth. The headline rolls through what you've got (rice, pasta,
+   potatoes) and the pan changes dish with it; Mom's list stays pinned. 12 s loop, CSS only. */
+.lp-hero { position: relative; padding: 52px 0 46px; overflow: hidden;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c-brand) 13%, transparent) 50%, transparent 0) 0 0 / 56px 56px,
+              linear-gradient(color-mix(in srgb, var(--c-brand) 13%, transparent) 50%, transparent 0) 0 0 / 56px 56px, var(--c-bg); }
 .lp-hero .ui-wrap { position: relative; z-index: 1; display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center; padding-top: 0; padding-bottom: 0; }
-.lp-hero h1 { font-size: clamp(2.4rem, 5.6vw, 4rem); line-height: 1.02; margin-bottom: 18px; }
-.lp-hero h1 em { font-style: italic; color: var(--c-brand); }
+.lp-card { background: var(--c-paper, var(--c-surface)); border-radius: 6px 22px 8px 20px; padding: 32px 34px 28px; box-shadow: var(--shadow-lg); transform: rotate(-1deg); position: relative; }
+.lp-card::before { content: ""; position: absolute; top: -10px; left: 40px; width: 80px; height: 20px; transform: rotate(-4deg); background: color-mix(in srgb, var(--c-accent) 50%, transparent); }
+.lp-hero h1 { font-size: clamp(2.3rem, 5.2vw, 3.8rem); line-height: 1.04; margin-bottom: 18px; }
+.lp-hero h1 em { font-style: italic; color: var(--c-brand); display: block; }
+.lp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.lp-roll { display: inline-block; height: 1.1em; overflow: hidden; vertical-align: bottom; }
+.lp-roll span { display: block; height: 1.1em; color: var(--c-brand); font-style: italic; animation: lp-roll 12s cubic-bezier(.7, 0, .3, 1) infinite; }
+@keyframes lp-roll { 0%, 29% { transform: translateY(0); } 33%, 62% { transform: translateY(-100%); } 66%, 96% { transform: translateY(-200%); } 100% { transform: translateY(-300%); } }
 .lp-hand { font: 700 1.6rem/1.1 var(--font-hand); color: var(--c-brand); margin: 0 0 10px; transform: rotate(-2deg); display: inline-block; }
-.lp-lead { font-size: 1.18rem; color: var(--c-muted); max-width: 32em; margin-bottom: 26px; }
+.lp-lead { font-size: 1.08rem; color: var(--c-muted); max-width: 32em; margin-bottom: 24px; }
 .lp-cta { display: flex; gap: 12px; flex-wrap: wrap; }
-.lp-proof { margin-top: 22px; display: flex; gap: 8px 18px; flex-wrap: wrap; color: var(--c-muted); font-size: .95rem; font-weight: 600; }
+.lp-proof { margin-top: 20px; display: flex; gap: 8px 18px; flex-wrap: wrap; color: var(--c-muted); font-size: .95rem; font-weight: 600; }
 .lp-proof span { display: inline-flex; gap: 6px; align-items: center; }
 .lp-proof .ui-ic { color: var(--c-brand); }
 .lp-art { position: relative; aspect-ratio: 1 / .92; max-width: 520px; width: 100%; justify-self: center; }
 .lp-art svg.pan { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.lp-art .dish { opacity: 0; animation: lp-dish 12s infinite; }
+.lp-art .dish.d2 { animation-delay: 4s; } .lp-art .dish.d3 { animation-delay: 8s; }
+@keyframes lp-dish { 0% { opacity: 0; } 3%, 31% { opacity: 1; } 35%, 100% { opacity: 0; } }
 .lp-art .steam path { animation: lp-steam 3.2s ease-in-out infinite; }
 .lp-art .steam path:nth-child(2) { animation-delay: .8s; }
 .lp-art .steam path:nth-child(3) { animation-delay: 1.6s; }
 @keyframes lp-steam { 0%, 100% { transform: translateY(0); opacity: .15; } 50% { transform: translateY(-10px); opacity: .7; } }
-.lp-list { position: absolute; left: -2%; bottom: -4%; width: 46%; min-width: 170px; background: var(--c-paper); border-radius: 4px 16px 6px 14px; padding: 14px 16px 12px;
-  box-shadow: var(--shadow-lg); transform: rotate(-5deg); font: 600 1.25rem/1.15 var(--font-hand); color: var(--c-ink); }
+.lp-list { position: absolute; left: -4%; bottom: -4%; width: 44%; min-width: 170px; background: var(--c-paper); border-radius: 4px 16px 6px 14px; padding: 14px 16px 12px;
+  box-shadow: var(--shadow-lg); transform: rotate(-5deg); font: 600 1.2rem/1.15 var(--font-hand); color: var(--c-ink); }
 .lp-list::before { content: ""; position: absolute; top: -8px; left: 50%; width: 60px; height: 16px; margin-left: -30px; transform: rotate(4deg); background: color-mix(in srgb, var(--c-accent) 50%, transparent); }
-.lp-list b { display: block; font-size: 1.45rem; color: var(--c-brand); margin-bottom: 4px; }
+.lp-list b { display: block; font-size: 1.4rem; color: var(--c-brand); margin-bottom: 4px; }
 .lp-list span { display: block; }
 .lp-list s { color: var(--c-faint); }
-.lp-list .home { color: var(--c-good); font-size: 1.1rem; margin-top: 4px; }
-.lp-chip { position: absolute; display: inline-flex; align-items: center; gap: 6px; background: var(--c-surface); border: 1px solid var(--c-line); border-radius: 999px;
-  padding: 8px 14px; font-weight: 800; font-size: .9rem; box-shadow: var(--shadow); white-space: nowrap; }
+.lp-list .home { color: var(--c-good); font-size: 1.05rem; margin-top: 4px; }
+.lp-chips { position: absolute; top: 0; right: 0; width: 70%; height: 40px; }
+.lp-chip { position: absolute; right: 0; top: 0; display: inline-flex; align-items: center; gap: 6px; background: var(--c-surface); border: 1px solid var(--c-line); border-radius: 999px;
+  padding: 8px 14px; font-weight: 800; font-size: .9rem; box-shadow: var(--shadow); white-space: nowrap; transform: rotate(3deg); opacity: 0; animation: lp-dish 12s infinite; }
+.lp-chip:nth-child(2) { animation-delay: 4s; } .lp-chip:nth-child(3) { animation-delay: 8s; }
 .lp-chip .ui-ic { color: var(--c-brand); width: 16px; height: 16px; }
-.lp-chip.a { top: 2%; right: 0; transform: rotate(3deg); }
-.lp-chip.b { top: 58%; right: -3%; transform: rotate(-2deg); }
+.lp-chip.fixed { top: 58%; right: -3%; transform: rotate(-2deg); opacity: 1; animation: none; position: absolute; }
 .lp-section { padding: 52px 0; }
 .lp-section .ui-wrap { padding-top: 0; padding-bottom: 0; }
 .lp-head { text-align: center; max-width: 640px; margin: 0 auto 30px; }
@@ -489,7 +503,8 @@ html.ui-modal-open { overflow: hidden; }
 .pk-shop b { color: var(--c-ink); }
 @media (max-width: 860px) {
   .lp-hero { padding-top: 30px; }
-  .lp-hero .ui-wrap { grid-template-columns: 1fr; gap: 34px; }
+  .lp-hero .ui-wrap { grid-template-columns: 1fr; gap: 40px; }
+  .lp-card { padding: 24px 20px 22px; }
   .lp-art { max-width: 400px; margin-bottom: 10px; }
   .lp-steps { grid-template-columns: 1fr; }
   .lp-step:nth-child(2) { transform: none; }
@@ -498,8 +513,9 @@ html.ui-modal-open { overflow: hidden; }
 }
 @media (max-width: 420px) {
   .lp-list { font-size: 1.1rem; min-width: 150px; left: 0; }
-  .lp-chip.b { right: 0; }
+  .lp-chip.fixed { right: 0; }
 }
+@media (prefers-reduced-motion: reduce) { .lp-roll span, .lp-art .dish, .lp-chip, .lp-art .steam path { animation: none; } .lp-art .dish.d1, .lp-chip:first-child { opacity: 1; } }
 
 /* ===== list.html ===== */
 .sl { max-width: 720px; }

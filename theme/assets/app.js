@@ -1053,7 +1053,7 @@
 (function () {
   var COPY = {
     hand: 'Don\'t worry, love.',
-    title: 'You\'ve got rice. <em>I\'ve got the rest.</em>',
+    rolls: [['rice.', 'Tuscan chicken, over rice'], ['pasta.', 'Quick bolognese, over pasta'], ['potatoes.', 'Sausage & peppers, over potatoes']],
     lead: 'Topameal plans a week of quick one-pan toppers to pour over the rice, pasta and potatoes you already have. ' +
           'It writes the shopping list, tells you what to cook first so nothing spoils, and even counts the dishes. You don\'t choose anything. You just say no to what you don\'t fancy.',
     cta: 'Plan my week',
@@ -1092,17 +1092,28 @@
       '<path d="M300 268 L408 352" style="stroke:#2b201b;stroke-width:28;stroke-linecap:round"/>' +
       '<ellipse cx="206" cy="218" rx="132" ry="128" style="fill:#000;opacity:.12"/>' +
       '<circle cx="200" cy="200" r="130" style="fill:#2b201b"/><circle cx="200" cy="200" r="117" style="fill:#3d2e25"/>' +
-      '<circle cx="200" cy="200" r="106" style="fill:url(#lp-s)"/>' +
+      '<g class="dish d1"><circle cx="200" cy="200" r="106" style="fill:url(#lp-s)"/>' +
       '<path d="M130 190c30-40 90-50 130-20M150 250c40 20 90 10 110-20" style="fill:none;stroke:#fbe7cc;stroke-width:7;stroke-linecap:round;opacity:.55"/>' +
       chunk(130, 150, -18) + chunk(205, 128, 12) + chunk(240, 200, -30) + chunk(150, 222, 22) + chunk(196, 250, -8) + chunk(178, 182, 40) +
       leaf(250, 160, 30) + leaf(130, 205, -40) + leaf(232, 258, 10) + leaf(165, 140, 70) + leaf(270, 228, -60) +
-      tom(222, 176) + tom(140, 180) + tom(262, 252) + tom(186, 222) + tom(172, 268) +
+      tom(222, 176) + tom(140, 180) + tom(262, 252) + tom(186, 222) + tom(172, 268) + '</g>' +
+      // dish 2: a quick bolognese (mince crumbs, basil); dish 3: sausage and peppers
+      '<g class="dish d2"><circle cx="200" cy="200" r="106" style="fill:#9c2f1e"/>' +
+      [[150, 160], [190, 140], [236, 170], [258, 214], [226, 250], [178, 262], [140, 226], [168, 196], [208, 206], [232, 228], [196, 172], [150, 196]].map(function (p, i) {
+        return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (7 + i % 3 * 2) + '" style="fill:#6b3b26"/>'; }).join('') +
+      leaf(210, 150, 20) + leaf(168, 240, -30) + leaf(250, 196, 60) + '</g>' +
+      '<g class="dish d3"><circle cx="200" cy="200" r="106" style="fill:#c8452c"/>' +
+      [[150, 170, 20], [214, 150, -30], [250, 210, 50], [188, 244, 0], [148, 222, -60]].map(function (p) {
+        return '<rect x="' + (p[0] - 20) + '" y="' + (p[1] - 5) + '" width="40" height="10" rx="5" transform="rotate(' + p[2] + ' ' + p[0] + ' ' + p[1] + ')" style="fill:#f2c230"/>'; }).join('') +
+      [[176, 176], [230, 188], [206, 228], [158, 250], [252, 246], [196, 140]].map(function (p) {
+        return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="15" style="fill:#7a3f22;stroke:#5a2c16;stroke-width:3"/><circle cx="' + p[0] + '" cy="' + p[1] + '" r="7" style="fill:#a8603a"/>'; }).join('') +
+      '</g>' +
       '<g class="steam" style="fill:none;stroke:var(--c-faint);stroke-width:5;stroke-linecap:round">' +
       '<path d="M160 70c-10-14 10-22 0-38"/><path d="M200 60c-10-14 10-22 0-38"/><path d="M240 70c-10-14 10-22 0-38"/></g></svg>' +
       '<div class="lp-list"><b>Mom\'s list ♥</b><span><s>chicken thighs</s></span><span>cherry tomatoes</span><span>baby spinach</span><span>cooking cream</span>' +
       '<span class="home">rice? you have it.</span></div>' +
-      '<span class="lp-chip a">' + UI.icon('bubbles') + '5 things to wash</span>' +
-      '<span class="lp-chip b">' + UI.icon('clock') + 'Cook by Wednesday</span></div>';
+      '<div class="lp-chips">' + COPY.rolls.map(function (r) { return '<span class="lp-chip">' + UI.icon('pan') + UI.esc(r[1]) + '</span>'; }).join('') + '</div>' +
+      '<span class="lp-chip fixed">' + UI.icon('bubbles') + '5 things to wash</span></div>';
   }
 
   function peek() {
@@ -1126,8 +1137,10 @@
       : '<a class="ui-btn primary lg" href="#auth/signup" data-go="auth/signup">' + esc(C.cta) + ' ' + UI.icon('arrow') + '</a>' +
         '<button class="ui-btn lg" data-peek-open>' + UI.icon('pan') + 'Peek at a week</button>';
     view.innerHTML =
-      '<section class="lp-hero"><div class="ui-wrap"><div>' +
-        '<span class="lp-hand">' + esc(C.hand) + '</span><h1>' + C.title + '</h1><p class="lp-lead">' + esc(C.lead) + '</p>' +
+      '<section class="lp-hero"><div class="ui-wrap"><div class="lp-card">' +
+        '<span class="lp-hand">' + esc(C.hand) + '</span><h1>You\'ve got <span class="lp-roll" aria-hidden="true">' +
+          C.rolls.concat([C.rolls[0]]).map(function (r) { return '<span>' + esc(r[0]) + '</span>'; }).join('') + '</span>' +
+          '<span class="lp-sr">rice, pasta or potatoes.</span> <em>I\'ve got the rest.</em></h1><p class="lp-lead">' + esc(C.lead) + '</p>' +
         '<div class="lp-cta">' + primary + '</div>' +
         '<div class="lp-proof">' + C.proof.map(function (p) { return '<span>' + UI.icon(p[0]) + esc(p[1]) + '</span>'; }).join('') + '</div>' +
       '</div>' + heroArt() + '</div></section>' +
