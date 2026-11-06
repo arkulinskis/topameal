@@ -1,0 +1,22 @@
+<div class="ui tm-invite">
+  <h2 class="dlg-h">Share your kitchen</h2>
+  <p class="muted">Send this link to the people you live with. When they open it, they join your kitchen: one plan, one shopping list, and everyone can tick things off.</p>
+  <div class="ui-skel tm-invite-wait" anvil:name="wait"></div>
+  <div anvil:name="body">
+    <div class="tm-link">
+      <anvil-component type="TextBox" name="link_box"></anvil-component>
+      <anvil-component type="Button" name="copy_button" prop:text="Copy" prop:role='["btn", "btn-primary", "ic-copy"]'></anvil-component>
+    </div>
+    <anvil-component type="Button" name="share_button" prop:text="Send it with…" prop:role='["btn", "btn-block", "ic-share"]'></anvil-component>
+    <div anvil:name="in_part" class="tm-invite-in">
+      <p class="small muted">In this kitchen now:</p>
+      <anvil-component type="Topameal.Components.People" name="people"></anvil-component>
+    </div>
+    <p class="small muted tm-invite-new" anvil:name="new_part">Sent it to the wrong person?
+      <anvil-component type="Button" name="new_button" prop:text="Make a new link" prop:role='["btn", "btn-ghost", "btn-sm"]'></anvil-component>
+      (the old one stops working).</p>
+  </div>
+  <div class="ui-row end">
+    <anvil-component type="Button" name="close_button" prop:text="Done" prop:role='["btn", "btn-ghost"]'></anvil-component>
+  </div>
+</div>

@@ -1,0 +1,13 @@
+<div class="ui pk">
+  <h2 class="dlg-h">A week, planned</h2>
+  <p class="muted">A sample for two people. Yours is made fresh when you sign up.</p>
+  <div class="ui-skel pk-wait" anvil:name="wait"></div>
+  <div anvil:name="body">
+    <anvil-component type="RepeatingPanel" name="rows" prop:item_template="Topameal.Items.PeekRow" prop:role='["pk-list"]'></anvil-component>
+    <p class="pk-shop"><b anvil:dom-node="shop_head"></b> <span anvil:dom-node="shop_text"></span></p>
+  </div>
+  <div class="ui-row end">
+    <anvil-component type="Button" name="close_button" prop:text="Close" prop:role='["btn", "btn-ghost"]'></anvil-component>
+    <anvil-component type="Button" name="signup_button" prop:text="Plan my week" prop:role='["btn", "btn-primary", "ic-arrow", "ic-after"]'></anvil-component>
+  </div>
+</div>

@@ -1,0 +1,59 @@
+<anvil-form layout="Topameal.Layouts.Shell">
+  <anvil-block slot="content">
+    <div class="ui-wrap ck ui-narrow">
+      <a class="ck-back" href="#home"><i class="ic ic-back"></i>This week</a>
+
+      <div class="ui-empty" anvil:name="missing">
+        <i class="ic ic-info"></i>
+        <h1 class="ck-missing-h">I don't know that recipe</h1>
+        <p>The link may be old. Your week has everything you need.</p>
+        <a class="ui-btn" href="#home">Back to this week</a>
+      </div>
+
+      <div anvil:name="body">
+        <div class="ck-title">
+          <span class="tm-base big" anvil:dom-node="base"></span>
+          <div>
+            <h1 anvil:dom-node="title"></h1>
+            <p class="ck-blurb" anvil:dom-node="blurb"></p>
+            <anvil-component type="Topameal.Components.Meta" name="meta"></anvil-component>
+            <p class="small faint ck-also" anvil:name="also"><span anvil:dom-node="also_text"></span></p>
+          </div>
+        </div>
+        <p anvil:name="cookby"><span class="tm-flag cook"><i class="ic ic-clock"></i><span anvil:dom-node="cookby_text"></span></span></p>
+
+        <section class="ck-box">
+          <h2><i class="ic ic-bubbles"></i><span anvil:dom-node="dishes_title"></span></h2>
+          <anvil-component type="RepeatingPanel" name="dish_panel" prop:item_template="Topameal.Items.Pill" prop:role='["ck-dishes"]'></anvil-component>
+        </section>
+        <section class="ck-box">
+          <h2><i class="ic ic-cart"></i>You'll need</h2>
+          <anvil-component type="RepeatingPanel" name="ing_panel" prop:item_template="Topameal.Items.Ingredient" prop:role='["ck-ing"]'></anvil-component>
+        </section>
+        <section class="ck-box">
+          <h2><i class="ic ic-pan"></i>Steps</h2>
+          <anvil-component type="RepeatingPanel" name="step_panel" prop:item_template="Topameal.Items.Step" prop:role='["ck-steps"]'></anvil-component>
+          <p class="ck-hint">Tap a step when it's done.</p>
+        </section>
+
+        <anvil-component type="Topameal.Components.Note" name="note"></anvil-component>
+
+        <div class="ck-end">
+          <div class="ck-end-in" anvil:name="end_off">
+            <p class="muted">This one isn't on this week's plan.</p>
+            <a class="ui-btn" href="#home">Back to this week</a>
+          </div>
+          <div class="ck-end-in" anvil:name="end_done">
+            <span class="tm-flag ok big"><i class="ic ic-heart"></i><span anvil:dom-node="cooked_text"></span></span>
+            <a class="ui-btn primary lg" href="#home">Back to this week</a>
+            <anvil-component type="Button" name="uncook_button" prop:text="Actually, not yet" prop:role='["btn", "btn-ghost", "btn-sm", "ic-undo"]'></anvil-component>
+          </div>
+          <div class="ck-end-in" anvil:name="end_todo">
+            <anvil-component type="Button" name="cooked_button" prop:text="I cooked it" prop:role='["btn", "btn-primary", "btn-lg", "ic-heart"]'></anvil-component>
+            <p class="small muted">Leftovers? Lidded box, in the fridge within two hours, eaten within two days.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </anvil-block>
+</anvil-form>

@@ -129,7 +129,7 @@ def shopping(keys, people, checked=()):
             qty = scaled(acc[g]["amount"], people, mode)
             items.append({"key": g, "text": grocery_text(g, qty), "for": acc[g]["for"], "checked": g in checked,
                           "by": checked.get(g) or None, "keeps": keeps, "perishable": keeps <= 3})
-        items.sort(key=lambda i: (i["keeps"], i["text"]) if aisle == "meat" else (i["text"].split(" ", 1)[1],))
+        items.sort(key=lambda i: (i["keeps"], i["text"]) if aisle == "meat" else (str(i["text"]).split(" ", 1)[1],))
         if items:
             total += len(items)
             done += len([i for i in items if i["checked"]])

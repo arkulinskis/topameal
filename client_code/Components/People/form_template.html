@@ -1,0 +1,20 @@
+---
+custom_component: true
+properties:
+  - name: people
+    type: object
+    description: "[{id, name, me, owner}] from the server (names only, never emails)"
+    default_binding_prop: true
+  - name: removable
+    type: boolean
+    default_value: false
+    description: Show a remove button on everyone but me (the owner's view)
+toolbox_item:
+  title: Household
+  group: Topameal
+help_text: |
+  The household's name chips. Set `on_remove` to a function(person) to handle the remove buttons.
+---
+<div class="tm-people-host">
+  <anvil-component type="RepeatingPanel" name="panel" prop:item_template="Topameal.Items.Person" prop:role='["tm-people"]'></anvil-component>
+</div>

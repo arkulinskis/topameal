@@ -1,0 +1,29 @@
+---
+custom_component: true
+properties:
+  - name: line1
+    type: string
+    default_value: ""
+    description: The big first line, in Mom's handwriting
+    default_binding_prop: true
+  - name: line2
+    type: string
+    default_value: ""
+    description: A smaller second line (empty = none)
+  - name: sign
+    type: boolean
+    default_value: true
+    description: Signed "x Mom" at the bottom
+toolbox_item:
+  title: Mom's note
+  group: Topameal
+help_text: |
+  Mom's handwritten note on paper with a strip of tape (the old TM.note).
+---
+<div class="tm-note-host">
+  <div class="tm-note">
+    <anvil-component type="Label" name="l1" prop:role='["tm-hand"]'></anvil-component>
+    <anvil-component type="Label" name="l2" prop:role='["tm-hand", "tm-hand-small"]'></anvil-component>
+    <span class="tm-sign" anvil:name="signature">x Mom</span>
+  </div>
+</div>

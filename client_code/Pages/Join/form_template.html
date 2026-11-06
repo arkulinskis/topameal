@@ -1,0 +1,42 @@
+<anvil-form layout="Topameal.Layouts.Shell">
+  <anvil-block slot="content">
+    <div class="ui-wrap jn ui-narrow">
+      <div class="jn-pan" aria-hidden="true" anvil:name="pan"><i class="ic ic-pan"></i></div>
+
+      <div anvil:name="member_part">
+        <h1 anvil:dom-node="member_title"></h1>
+        <p class="muted">Same plan, same list. Nothing to do.</p>
+        <div class="ui-row"><a class="ui-btn primary lg" href="#home">Open this week</a></div>
+      </div>
+
+      <div anvil:name="invite_part">
+        <h1 anvil:dom-node="invite_title"></h1>
+        <anvil-component type="Topameal.Components.Note" name="note"></anvil-component>
+        <p class="small muted jn-in">In this kitchen:</p>
+        <anvil-component type="Topameal.Components.People" name="people"></anvil-component>
+        <p class="ui-error" anvil:name="full_part"><span anvil:dom-node="full_text"></span></p>
+        <div anvil:name="join_part">
+          <div class="ui-row">
+            <anvil-component type="Button" name="join_button" prop:role='["btn", "btn-primary", "btn-lg", "ic-heart"]'></anvil-component>
+            <a class="ui-btn ghost" href="#home">Not now</a>
+          </div>
+          <p class="small faint jn-fine">Your own plan is kept aside. Leave any time in You to get it back.</p>
+        </div>
+        <div anvil:name="guest_part">
+          <div class="ui-row">
+            <anvil-component type="Button" name="signup_button" prop:text="Create my account" prop:role='["btn", "btn-primary", "btn-lg"]'></anvil-component>
+            <anvil-component type="Button" name="signin_button" prop:text="I have an account" prop:role='["btn", "btn-lg"]'></anvil-component>
+          </div>
+          <p class="small faint jn-fine">Free. You'll come straight back here to join.</p>
+        </div>
+      </div>
+
+      <div class="ui-empty" anvil:name="failed_part">
+        <i class="ic ic-info"></i>
+        <h1 class="jn-failed-h">That link didn't work</h1>
+        <p anvil:dom-node="failed_text"></p>
+        <a class="ui-btn" href="#landing" anvil:name="failed_link"><span anvil:dom-node="failed_link_text"></span></a>
+      </div>
+    </div>
+  </anvil-block>
+</anvil-form>

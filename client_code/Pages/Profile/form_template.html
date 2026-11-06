@@ -1,0 +1,85 @@
+<anvil-form layout="Topameal.Layouts.Shell">
+  <anvil-block slot="content">
+    <div class="ui-wrap ui-narrow">
+      <div class="pf-head">
+        <span class="ui-avatar pf-avatar" aria-hidden="true" anvil:dom-node="initials"></span>
+        <div>
+          <h1 anvil:dom-node="name_title"></h1>
+          <div class="muted" anvil:dom-node="email_line"></div>
+        </div>
+      </div>
+
+      <div class="ui-card kc">
+        <h2>Your kitchen</h2>
+        <p class="muted small">So I plan the right amount. I don't ask what you like: I suggest, you say no.</p>
+        <div class="kc-row first">
+          <div><b>How many of you?</b><span class="small">I scale the shopping list.</span></div>
+          <div class="kc-step" role="group" aria-label="How many of you"><anvil-component type="Button" name="people_minus" prop:text="−" prop:role='["btn", "kc-step-btn"]'></anvil-component><output anvil:dom-node="people_out" aria-live="polite"></output><anvil-component type="Button" name="people_plus" prop:text="+" prop:role='["btn", "kc-step-btn"]'></anvil-component></div>
+        </div>
+        <div class="kc-row">
+          <div><b>Dinners a week</b><span class="small">The other nights: leftovers, or toast. No judgement.</span></div>
+          <div class="kc-step" role="group" aria-label="Dinners a week"><anvil-component type="Button" name="nights_minus" prop:text="−" prop:role='["btn", "kc-step-btn"]'></anvil-component><output anvil:dom-node="nights_out" aria-live="polite"></output><anvil-component type="Button" name="nights_plus" prop:text="+" prop:role='["btn", "kc-step-btn"]'></anvil-component></div>
+        </div>
+        <div class="kc-row">
+          <div><b>Budget</b><span class="small">A little treat lets in steak and salmon.</span></div>
+          <div class="ui-seg" role="group" aria-label="Budget">
+            <anvil-component type="Button" name="budget_1" prop:role='["seg"]'></anvil-component>
+            <anvil-component type="Button" name="budget_2" prop:role='["seg"]'></anvil-component>
+            <anvil-component type="Button" name="budget_3" prop:role='["seg"]'></anvil-component>
+          </div>
+        </div>
+        <div class="kc-row">
+          <div><b>Anything you don't eat?</b><span class="small">Only if you must. Always check labels for allergies.</span></div>
+          <anvil-component type="RepeatingPanel" name="avoid_panel" prop:item_template="Topameal.Items.AvoidChip" prop:role='["kc-avoid"]'></anvil-component>
+        </div>
+        <div class="kc-row" anvil:name="never_row">
+          <div><b>I've stopped suggesting</b><span class="small">You said no three times. Give one another chance?</span></div>
+          <anvil-component type="RepeatingPanel" name="never_panel" prop:item_template="Topameal.Items.NeverChip" prop:role='["kc-never"]'></anvil-component>
+        </div>
+        <div class="ui-row end kc-save">
+          <anvil-component type="Button" name="save_kitchen_button" prop:text="Save my kitchen" prop:role='["btn", "btn-primary", "ic-check"]'></anvil-component>
+        </div>
+      </div>
+
+      <div class="ui-card kc">
+        <h2>Your household</h2>
+        <p class="muted small" anvil:dom-node="house_text"></p>
+        <anvil-component type="Topameal.Components.People" name="house_people"></anvil-component>
+        <div class="ui-row kc-house">
+          <anvil-component type="Button" name="invite_button" prop:role='["btn", "ic-share"]'></anvil-component>
+          <anvil-component type="Button" name="leave_button" prop:text="Leave this kitchen" prop:role='["btn", "btn-ghost", "ic-logout"]'></anvil-component>
+        </div>
+      </div>
+
+      <div class="pf-grid">
+        <div class="ui-card ui-stack">
+          <h3>Your name</h3>
+          <label class="ui-field"><span>What should I call you?</span>
+            <anvil-component type="TextBox" name="name_box"></anvil-component>
+          </label>
+          <anvil-component type="Button" name="save_button" prop:text="Save" prop:role='["btn", "btn-primary"]'></anvil-component>
+        </div>
+        <div class="ui-card ui-stack">
+          <h3>Appearance</h3>
+          <p class="muted small">Follow your device, or pick one.</p>
+          <div class="ui-seg" role="group" aria-label="Appearance">
+            <button type="button" anvil:name="theme_auto" data-theme-pick="auto" anvil:on-dom:click="self.theme_click">Auto</button>
+            <button type="button" anvil:name="theme_light" data-theme-pick="light" anvil:on-dom:click="self.theme_click">Light</button>
+            <button type="button" anvil:name="theme_dark" data-theme-pick="dark" anvil:on-dom:click="self.theme_click">Dark</button>
+          </div>
+          <h3 class="pf-pw">Password</h3>
+          <p class="muted small">We'll email you a link to choose a new one.</p>
+          <anvil-component type="Button" name="reset_button" prop:text="Email me a reset link" prop:role='["btn", "ic-mail"]'></anvil-component>
+        </div>
+      </div>
+      <div class="ui-card pf-more">
+        <div class="pf-links">
+          <a href="#admin" anvil:name="admin_link"><i class="ic ic-shield"></i>Admin</a>
+          <button type="button" anvil:on-dom:click="self.feedback_click"><i class="ic ic-chat"></i>Submit feedback</button>
+          <button type="button" data-lk-open="overview"><i class="ic ic-lock"></i>Privacy &amp; Terms, and your data</button>
+          <button type="button" anvil:on-dom:click="self.sign_out_click"><i class="ic ic-logout"></i>Sign out</button>
+        </div>
+      </div>
+    </div>
+  </anvil-block>
+</anvil-form>

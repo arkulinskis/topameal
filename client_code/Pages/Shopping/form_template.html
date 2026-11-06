@@ -1,0 +1,46 @@
+<anvil-form layout="Topameal.Layouts.Shell">
+  <anvil-block slot="content">
+    <div class="ui-wrap sl ui-narrow">
+      <div class="ui-page-head sl-head">
+        <div>
+          <h1>Shopping list</h1>
+          <p class="muted">Roughly a <span class="tm-tier" anvil:dom-node="tier"></span> <b anvil:dom-node="tier_word"></b> week</p>
+        </div>
+        <div class="ui-row">
+          <anvil-component type="Button" name="share_button" prop:text="Share" prop:role='["btn", "btn-sm", "ic-users"]'></anvil-component>
+          <anvil-component type="Button" name="copy_button" prop:text="Copy list" prop:role='["btn", "btn-sm", "ic-copy"]'></anvil-component>
+        </div>
+      </div>
+      <p class="sl-with" anvil:name="with_line"><span class="live" aria-hidden="true"></span><span anvil:dom-node="with_text"></span></p>
+      <anvil-component type="Topameal.Components.Note" name="note"></anvil-component>
+      <p class="sl-home"><b>Already at home:</b> <span anvil:dom-node="home_text"></span> I'm assuming.</p>
+
+      <div class="ui-empty" anvil:name="empty_part">
+        <i class="ic ic-cart"></i>
+        <h2>Nothing to buy</h2>
+        <p>There are no dinners on this week's plan.</p>
+        <a class="ui-btn" href="#home">Back to this week</a>
+      </div>
+
+      <div anvil:name="list_part">
+        <div class="sl-prog">
+          <div class="ui-row between">
+            <span anvil:dom-node="count" aria-live="polite"></span>
+            <span class="tm-flag ok" anvil:name="shopped_flag"><i class="ic ic-check"></i><span anvil:dom-node="shopped_text"></span></span>
+          </div>
+          <div class="bar" role="progressbar" aria-label="In the basket" aria-valuemin="0" anvil:dom-node="bar_box"><i anvil:dom-node="bar"></i></div>
+        </div>
+        <anvil-component type="RepeatingPanel" name="aisle_panel" prop:item_template="Topameal.Items.Aisle"></anvil-component>
+        <div class="sl-done" anvil:name="done_shopped">
+          <p class="muted">Shopping done. Every dinner now has a cook-by day.</p>
+          <a class="ui-btn primary lg" href="#home"><i class="ic ic-pan"></i>What's for tonight?</a>
+          <anvil-component type="Button" name="unshop_button" prop:text="Actually, I haven't shopped yet" prop:role='["btn", "btn-ghost", "btn-sm", "ic-undo"]'></anvil-component>
+        </div>
+        <div class="sl-done" anvil:name="done_todo">
+          <anvil-component type="Button" name="shopped_button" prop:text="I've done the shopping" prop:role='["btn", "btn-primary", "btn-lg", "ic-check"]'></anvil-component>
+          <p class="small muted">Then I'll tell you what to cook first, and by when.</p>
+        </div>
+      </div>
+    </div>
+  </anvil-block>
+</anvil-form>

@@ -1,0 +1,78 @@
+<anvil-form layout="Topameal.Layouts.Shell">
+  <anvil-block slot="content">
+    <div class="ui-wrap wk ui-narrow">
+      <h1 class="ui-sr">This week</h1>
+      <anvil-component type="Topameal.Components.Note" name="note"></anvil-component>
+      <p class="wk-with small muted" anvil:name="with_line"><i class="ic ic-users"></i><span anvil:dom-node="with_text"></span></p>
+
+      <div class="wk-assume" anvil:name="assume_box">
+        <p><b>I've made a few guesses.</b> Tell me if I'm wrong, otherwise carry on.</p>
+        <div class="facts">
+          <span class="ui-badge brand" anvil:dom-node="f_people"></span>
+          <span class="ui-badge brand" anvil:dom-node="f_nights"></span>
+          <span class="ui-badge brand" anvil:dom-node="f_budget"></span>
+          <span class="ui-badge" anvil:dom-node="f_home"></span>
+        </div>
+        <div class="ui-row">
+          <anvil-component type="Button" name="confirm_button" prop:text="That's right" prop:role='["btn", "btn-primary", "btn-sm", "ic-check"]'></anvil-component>
+          <a class="ui-btn sm" href="#profile">Change</a>
+        </div>
+      </div>
+
+      <section class="wk-hero wk-done" anvil:name="done_hero">
+        <div class="big" aria-hidden="true">&#9829;</div>
+        <h2>You fed yourself all week.</h2>
+        <p class="blurb" anvil:dom-node="done_text"></p>
+        <div class="ui-row wk-center">
+          <anvil-component type="Button" name="fresh_now_button" prop:text="Plan next week" prop:role='["btn", "btn-primary", "btn-lg", "ic-sparkle"]'></anvil-component>
+        </div>
+      </section>
+
+      <section class="wk-hero" anvil:name="shop_hero">
+        <h2>Step one: go shopping, once</h2>
+        <p class="blurb" anvil:dom-node="shop_text"></p>
+        <div class="ui-row">
+          <a class="ui-btn primary lg" href="#list"><i class="ic ic-cart"></i>Open my list</a>
+          <a class="ui-btn ghost" href="#home" anvil:name="peek_link">Peek at the first recipe</a>
+        </div>
+      </section>
+
+      <section class="wk-hero" anvil:name="tonight_hero">
+        <div class="top">
+          <span class="tm-base big" anvil:dom-node="t_base"></span>
+          <div>
+            <h2 anvil:dom-node="t_title"></h2>
+            <p class="blurb" anvil:dom-node="t_blurb"></p>
+            <anvil-component type="Topameal.Components.Meta" name="t_meta"></anvil-component>
+          </div>
+        </div>
+        <div class="ui-row">
+          <a class="ui-btn primary lg" href="#home" anvil:name="cook_link"><i class="ic ic-pan"></i>Let's cook</a>
+          <anvil-component type="Button" name="tired_button" prop:text="Too tired tonight" prop:role='["btn", "btn-ghost", "ic-sofa"]'></anvil-component>
+        </div>
+      </section>
+
+      <div anvil:name="plan_part">
+        <div class="wk-head"><h2 anvil:dom-node="plan_title"></h2><span class="small muted" anvil:dom-node="plan_sub"></span></div>
+        <anvil-component type="RepeatingPanel" name="week_panel" prop:item_template="Topameal.Items.WeekCard" prop:role='["wk-list"]'></anvil-component>
+        <p class="wk-sum"><span anvil:dom-node="sum_text"></span> <span class="tm-tier" anvil:dom-node="sum_tier"></span> <b anvil:dom-node="sum_word"></b> week</p>
+      </div>
+
+      <div class="ui-empty" anvil:name="empty_part">
+        <i class="ic ic-pan"></i>
+        <h2>Nothing fits, love</h2>
+        <p>With what you've told me you don't eat, I've run out of ideas. Loosen something in You?</p>
+        <a class="ui-btn" href="#profile">Open my kitchen</a>
+      </div>
+
+      <section class="wk-tray" anvil:name="tray_part">
+        <div class="wk-head"><h2>Set aside</h2><span class="small muted">Changed your mind? Bring it back.</span></div>
+        <anvil-component type="RepeatingPanel" name="tray_panel" prop:item_template="Topameal.Items.TrayChip" prop:role='["wk-chips"]'></anvil-component>
+      </section>
+
+      <div class="wk-fresh" anvil:name="fresh_part">
+        <anvil-component type="Button" name="fresh_button" prop:text="Start a whole new week" prop:role='["btn", "btn-ghost", "btn-sm", "ic-refresh"]'></anvil-component>
+      </div>
+    </div>
+  </anvil-block>
+</anvil-form>

@@ -1,0 +1,25 @@
+---
+custom_component: true
+properties:
+  - name: topper
+    type: object
+    description: A topper card from the server (base, minutes, dishes, dish_count, tier, tier_label)
+    default_binding_prop: true
+  - name: show_base
+    type: boolean
+    default_value: true
+    description: Show "over rice" first
+toolbox_item:
+  title: Topper facts
+  group: Topameal
+help_text: |
+  The little facts row under a dinner: over what, minutes, things to wash, price tier.
+---
+<div class="tm-meta-host">
+  <div class="tm-meta">
+    <span anvil:dom-node="base_part"><i class="ic" anvil:dom-node="base_icon"></i><span anvil:dom-node="base_text"></span></span>
+    <span><i class="ic ic-clock"></i><span anvil:dom-node="minutes"></span></span>
+    <span anvil:dom-node="dishes_part"><i class="ic ic-bubbles"></i><span anvil:dom-node="dishes"></span></span>
+    <span class="tm-tier" anvil:dom-node="tier"></span>
+  </div>
+</div>
