@@ -7,7 +7,7 @@ around them with an offset instead of whole files.
 
 **What it is:** Dinner, decided. Topameal picks quick one-pan toppers for the rice, pasta and potatoes you already have, and writes your shopping list for the week.
 **Live:** https://topameal.com · **Repo:** github.com/arkulinskis/topameal · **Layout:** native Anvil Forms · **Deploy:** master
-**Guide** (workflow, design rules, product knowledge): `topameal/.claude/skills/topameal/SKILL.md`
+**Guide** (workflow, design rules, product knowledge): `.claude/skills/topameal/SKILL.md`
 
 ## How to change it
 
