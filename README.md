@@ -42,7 +42,7 @@ Sign-up with email and password or Google, a feedback form, and the Privacy & Te
 keep-for days and "sum" or "one" (one jar covers the week), 3 bases. Shortcuts on purpose: jarred garlic, grated cheese,
 frozen shrimp.
 
-**For admins** (`#admin`; arkulinskis@gmail.com becomes an admin on first sign-in):
+**For admins** (`#admin`; your admin email (App Secret `admin_emails`) becomes an admin on first sign-in):
 - **Kitchen:** every topper with how often it's planned, refused and cooked (spot the ones people skip).
 - **Feedback inbox:** New / Read / Done, private notes.
 - **Users:** search, make admin, disable an account.
@@ -53,7 +53,7 @@ frozen shrimp.
 1. In the Anvil editor: **Create app → Clone from GitHub**, and paste `https://github.com/arkulinskis/topameal`.
 2. **Users** service: email + password and "Continue with Google", sign-up allowed (already set in `anvil.yaml`; check it).
 3. Open the app in the editor. If it shows a **Schema Mismatch** alert, choose **"The schema of the source code is correct"** so Anvil creates the tables.
-4. **Run** it and sign up with **arkulinskis@gmail.com** straight away (that account becomes the admin).
+4. **Run** it and sign up with **your admin email** (App Secret `admin_emails`) straight away (that account becomes the admin).
 5. **Publish** (Publish → public URL, or your own domain).
 
 <!-- libraries:start -->
