@@ -380,7 +380,7 @@ native_deps:
     <!-- Prepsto feedback panel: every "Submit feedback" link and button opens it (it is the only feedback channel). No floating button, no cookies, nothing loads until it is opened. Codes: APP_MAKER/prepsto-links.json -->
     <script src="https://prepsto.com/_/theme/widget.js" data-prepsto="kpx5ewp" data-button="false" data-label="Submit feedback" async></script>
     <link rel="stylesheet" href="_/theme/icons.css?v=9ec8e7d7ff">
-    <link rel="stylesheet" href="_/theme/app.css?v=de75832da2">
+    <link rel="stylesheet" href="_/theme/app.css?v=f00e50118a">
     <script src="_/theme/app-kit.js?v=11b4ebd628"></script>
 package_name: Topameal
 runtime_options:

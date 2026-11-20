@@ -5,13 +5,15 @@ from ... import state
 
 
 class CopyList(CopyListTemplate):
-    """When the browser won't copy for us: the list in a box, selected, ready to copy by hand."""
+    """When the browser won't copy for us: the text in a box, selected, ready to copy by hand. Used for the shopping
+    list (Pages/Shopping) and the "Send this week" link (Pages/Home, title="Your week's link")."""
 
-    def __init__(self, text="", **properties):
+    def __init__(self, text="", title="Your list", **properties):
         super().__init__(**properties)
         self.text_box.text = text
+        self.dom_nodes["title"].textContent = title
         state.set_control_attr(self.text_box, "readonly", "")
-        state.set_control_attr(self.text_box, "aria-label", "Your shopping list")
+        state.set_control_attr(self.text_box, "aria-label", "Your shopping list" if title == "Your list" else title)
 
     @handle("", "show")
     def form_show(self, **event_args):

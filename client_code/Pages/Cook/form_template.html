@@ -45,6 +45,17 @@
           </div>
           <div class="ck-end-in" anvil:name="end_done">
             <span class="tm-flag ok big"><i class="ic ic-heart"></i><span anvil:dom-node="cooked_text"></span></span>
+            <section class="ck-verdict" aria-label="How did it go down?">
+              <h2>How did it go down?</h2>
+              <div class="ck-verdict-row">
+                <anvil-component type="Button" name="loved_button" prop:text="Everyone ate it" prop:role='["btn", "btn-sm", "ic-heart", "ck-v"]'></anvil-component>
+                <anvil-component type="Button" name="nope_button" prop:text="Not again" prop:role='["btn", "btn-ghost", "btn-sm", "ic-x", "ck-v", "ck-nope"]'></anvil-component>
+              </div>
+              <div class="ck-reply" anvil:name="reply_box">
+                <anvil-component type="Label" name="reply" prop:role='["tm-hand", "tm-hand-small", "ck-reply-text"]'></anvil-component>
+                <anvil-component type="Button" name="undo_button" prop:text="Undo" prop:role='["btn", "btn-ghost", "btn-sm", "ic-undo"]'></anvil-component>
+              </div>
+            </section>
             <a class="ui-btn primary lg" href="#home">Back to this week</a>
             <anvil-component type="Button" name="uncook_button" prop:text="Actually, not yet" prop:role='["btn", "btn-ghost", "btn-sm", "ic-undo"]'></anvil-component>
           </div>

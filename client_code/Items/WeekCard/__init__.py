@@ -7,6 +7,7 @@ from ... import router, state, tm
 
 class WeekCard(WeekCardTemplate):
     """One dinner on This week. item = a slot card from get_week + i (its place) + fresh (just arrived: glows once).
+    A household favourite (card["loved"]) wears a little heart flag, "A favourite".
     The whole card opens the cook page; "No thanks" raises x-no on the panel (the page asks Mom for a swap)."""
 
     def __init__(self, **properties):
@@ -21,6 +22,7 @@ class WeekCard(WeekCardTemplate):
         n["flag"].className = "tm-flag " + kind
         n["flag_icon"].className = "ic ic-" + icon
         n["flag_text"].textContent = text
+        self.fav.visible = bool(s.get("loved"))  # rated "Everyone ate it" (rate_dinner): it comes back now and then
         self.no_button.visible = not cooked
         state.set_control_attr(self.no_button, "aria-label", "No thanks to " + s["name"])
         self.tip.visible = not cooked and bool(s.get("freeze"))

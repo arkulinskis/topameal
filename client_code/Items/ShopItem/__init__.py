@@ -6,15 +6,17 @@ from ... import tm
 
 class ShopItem(ShopItemTemplate):
     """One line of the shopping list: a real tick box (keyboard and screen readers) drawn as Mom's round tick.
-    item = {key, text, for, checked, by, keeps, perishable, page}. It registers itself in page.rows so the page can
-    update it in place when someone else ticks it."""
+    item = {key, text, for, checked, by, keeps, perishable, since, page}. It registers itself in page.rows so the page
+    can update it in place when someone else ticks it. `since` (the "Probably still at home" group): the day it was
+    bought on an earlier shop, shown instead of "for ..."; ticking it means "got it / have it"."""
 
     def __init__(self, **properties):
         super().__init__(**properties)
         it, n = self.item, self.dom_nodes
         self.page, self.key = it["page"], it["key"]
         n["what"].textContent = it["text"]
-        n["for_text"].textContent = "for " + tm.words(it["for"])
+        since = it.get("since")
+        n["for_text"].textContent = ("bought %s · check before you buy" % tm.day(since)) if since else "for " + tm.words(it["for"])
         self.perish.visible = bool(it["perishable"])
         n["perish_text"].textContent = "Fridge straight away · keeps " + tm.plural(it["keeps"], "day")
         self.page.rows[self.key] = self

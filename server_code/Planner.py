@@ -4,7 +4,10 @@ Pure functions on plain data (no tables), so they are easy to test. Kitchen.py s
   kitchen  = {"people": 2, "nights": 4, "budget": 2, "avoid": [...], "never": [...]}
   slot     = {"key": "tuscan_chicken", "cooked": None | "YYYY-MM-DD"}
 How Mom picks: toppers that share fresh ingredients (less waste, cheaper), different proteins and bases
-(variety), cheaper tiers unless treats are allowed, fewer dishes, and a little luck.
+(variety), cheaper tiers unless treats are allowed, fewer dishes, and a little luck. She also leans towards toppers
+that use up what's probably still at home from earlier weeks (`have`, see leftovers()) and the household's
+favourites (`loved`: dinners rated "Everyone ate it"), which come back now and then but never two weeks running
+when there's enough else (last week's dinners are soft-excluded).
 Order: cooked first, then the most perishable first (fish, mince, chicken ... tins last).
 """
 import datetime as dt
@@ -15,6 +18,10 @@ from . import Recipes as R
 
 FRESH_DAYS = 14   # ingredients that keep less than this are the ones worth sharing between dinners
 MAX_NIGHTS = 7
+HOME_AISLE = ("home", "Probably still at home")   # the list's last group: jars and bunches bought on an earlier shop
+HAVE_BONUS = 1.0     # per ingredient probably still at home (cupboard things count less: everyone has those)
+HAVE_CUPBOARD = 0.3
+LOVED_BONUS = 2.0    # a household favourite
 
 
 def protein(t):
@@ -30,8 +37,12 @@ def candidates(kitchen, exclude):
             and R.is_allowed(t, kitchen.get("avoid"), kitchen.get("budget", 2))]
 
 
-def score(t, chosen, budget, rng):
+def score(t, chosen, budget, rng, have=(), loved=()):
     s = rng.random() * 3.0
+    for k in ingredient_keys(t) & set(have or ()):
+        s += HAVE_CUPBOARD if R.GROCERIES[k][2] == "cupboard" else HAVE_BONUS
+    if t["key"] in (loved or ()):
+        s += LOVED_BONUS
     have, proteins, bases = set(), [], []
     for c in chosen:
         have |= ingredient_keys(c)
@@ -47,9 +58,10 @@ def score(t, chosen, budget, rng):
     return s
 
 
-def pick(n, kitchen, keep=(), exclude=(), soft_exclude=(), rng=None):
+def pick(n, kitchen, keep=(), exclude=(), soft_exclude=(), rng=None, have=(), loved=()):
     """Up to n topper keys: the `keep` ones first, then Mom's choices. `soft_exclude` (e.g. last week's
-    toppers) is avoided unless there aren't enough others."""
+    toppers) is avoided unless there aren't enough others. `have`: grocery keys probably still at home;
+    `loved`: the household's favourite topper keys (both only nudge the score)."""
     rng = rng or random.Random()
     n = max(0, min(int(n), MAX_NIGHTS))
     chosen = [R.BY_KEY[k] for k in keep if k in R.BY_KEY]
@@ -58,15 +70,15 @@ def pick(n, kitchen, keep=(), exclude=(), soft_exclude=(), rng=None):
     if len(pool) < n - len(chosen):
         pool = candidates(kitchen, hard)
     while len(chosen) < n and pool:
-        best = max(pool, key=lambda t: score(t, chosen, kitchen.get("budget", 2), rng))
+        best = max(pool, key=lambda t: score(t, chosen, kitchen.get("budget", 2), rng, have, loved))
         chosen.append(best)
         pool.remove(best)
     return [t["key"] for t in chosen]
 
 
-def replacement(kitchen, others, exclude, rng=None):
+def replacement(kitchen, others, exclude, rng=None, have=(), loved=()):
     """One new topper that goes well with `others`, or None."""
-    got = pick(len(others) + 1, kitchen, keep=others, exclude=exclude, rng=rng)
+    got = pick(len(others) + 1, kitchen, keep=others, exclude=exclude, rng=rng, have=have, loved=loved)
     return got[-1] if len(got) > len(others) else None
 
 
@@ -104,8 +116,29 @@ def ticks(value):
     return {k: "" for k in (value or [])}
 
 
-def shopping(keys, people, checked=()):
-    """The merged list for these toppers, grouped by aisle in walking order. `checked`: ticks() dict or a list."""
+def leftovers(past, today):
+    """What's probably still at home from earlier shops: {grocery key: 'YYYY-MM-DD' it was bought}.
+    `past` = [(shopped date, grocery keys bought that week)], any order. Only "one" groceries count (a jar, a bunch,
+    a bag: one covers a week, so some is usually left); "sum" groceries get used up. A grocery drops out once its
+    keep days have passed (shopped + keeps - 1 < today), so a 5-day bunch of parsley goes, a jar of curry paste stays.
+    If a week ticked something that was probably still at home then, the older date stands: ticking it meant
+    "I have it", not "I bought a new one", so its keep days don't start again."""
+    bought = {}
+    for shopped, keys in sorted(((d, ks) for d, ks in past if d is not None), key=lambda x: x[0]):
+        for g in keys or ():
+            info = R.GROCERIES.get(g)
+            if info is None or info[4] != "one":
+                continue
+            prev = bought.get(g)
+            if prev is not None and prev + dt.timedelta(days=info[3] - 1) >= shopped:
+                continue
+            bought[g] = shopped
+    return {g: d.isoformat() for g, d in bought.items() if d + dt.timedelta(days=R.GROCERIES[g][3] - 1) >= today}
+
+
+def shopping(keys, people, checked=(), home=None):
+    """The merged list for these toppers, grouped by aisle in walking order. `checked`: ticks() dict or a list.
+    `home`: leftovers() of earlier weeks; those lines move to a last group, "Probably still at home", with `since`."""
     acc, order_seen = {}, []
     for key in keys:
         t = R.BY_KEY.get(key)
@@ -119,22 +152,45 @@ def shopping(keys, people, checked=()):
             if t["name"] not in acc[g]["for"]:
                 acc[g]["for"].append(t["name"])
     checked = ticks(checked)
+    home = home or {}
     aisles, total, done = [], 0, 0
-    for aisle, label in R.AISLES:
+    for aisle, label in R.AISLES + [HOME_AISLE]:
         items = []
         for g in order_seen:
             one, many, a, keeps, mode = R.GROCERIES[g]
-            if a != aisle:
+            if (HOME_AISLE[0] if g in home else a) != aisle:
                 continue
             qty = scaled(acc[g]["amount"], people, mode)
             items.append({"key": g, "text": grocery_text(g, qty), "for": acc[g]["for"], "checked": g in checked,
-                          "by": checked.get(g) or None, "keeps": keeps, "perishable": keeps <= 3})
+                          "by": checked.get(g) or None, "keeps": keeps, "perishable": keeps <= 3 and g not in home,
+                          "since": home.get(g)})
         items.sort(key=lambda i: (i["keeps"], i["text"]) if aisle == "meat" else (str(i["text"]).split(" ", 1)[1],))
         if items:
             total += len(items)
             done += len([i for i in items if i["checked"]])
             aisles.append({"key": aisle, "label": label, "items": items})
     return {"aisles": aisles, "total": total, "done": done}
+
+
+def home_notes(keys, home):
+    """For Mom's note: groceries on this week's list that are probably still at home, the most telling first
+    (a jar only one or two toppers use beats the garlic everything uses; cupboard things are left out).
+    [{"key": "salsa", "name": "salsa", "dinner": "Taco beef & beans"}]."""
+    uses = {}
+    for t in R.TOPPERS:
+        for g in ingredient_keys(t):
+            uses[g] = uses.get(g, 0) + 1
+    out, seen = [], set()
+    for key in keys:
+        t = R.BY_KEY.get(key)
+        if not t:
+            continue
+        for g, _ in t["ing"]:
+            if g in (home or {}) and R.GROCERIES[g][2] != "cupboard" and g not in seen:
+                seen.add(g)
+                out.append({"key": g, "name": short_name(g), "dinner": t["name"], "uses": uses.get(g, 0)})
+    out.sort(key=lambda o: (o["uses"], o["name"]))
+    return [{"key": o["key"], "name": o["name"], "dinner": o["dinner"]} for o in out]
 
 
 def shared(keys):

@@ -1,0 +1,33 @@
+<anvil-form layout="Topameal.Layouts.Shell">
+  <anvil-block slot="content">
+    <div class="ui-wrap sw ui-narrow">
+      <div class="ui-skel sw-wait" anvil:name="wait"></div>
+
+      <div anvil:name="body">
+        <h1 class="sw-h">A week of dinners, sorted</h1>
+        <anvil-component type="Topameal.Components.Note" name="note"></anvil-component>
+        <anvil-component type="RepeatingPanel" name="rows" prop:item_template="Topameal.Items.PeekRow" prop:role='["pk-list"]'></anvil-component>
+        <p class="wk-sum sw-sum"><span anvil:dom-node="sum_text"></span> <span class="tm-tier" anvil:dom-node="sum_tier"></span> <b anvil:dom-node="sum_word"></b> week</p>
+        <p class="pk-shop"><b anvil:dom-node="shop_head"></b> <span anvil:dom-node="shop_text"></span></p>
+
+        <div class="sw-act" anvil:name="member_part">
+          <anvil-component type="Button" name="adopt_button" prop:text="Make this my week" prop:role='["btn", "btn-primary", "btn-lg", "ic-heart"]'></anvil-component>
+          <a class="ui-btn ghost" href="#home">Not now</a>
+          <p class="small faint"><span anvil:dom-node="member_fine"></span></p>
+        </div>
+        <div class="sw-act" anvil:name="guest_part">
+          <anvil-component type="Button" name="cook_button" prop:text="Cook this week" prop:role='["btn", "btn-primary", "btn-lg", "ic-pan"]'></anvil-component>
+          <p class="small faint">Free. Make an account and you'll come straight back to this week.</p>
+        </div>
+      </div>
+
+      <div class="ui-empty" anvil:name="failed_part">
+        <i class="ic ic-info"></i>
+        <h1 class="jn-failed-h">That week didn't come through</h1>
+        <p anvil:dom-node="failed_text"></p>
+        <anvil-component type="Button" name="peek_button" prop:text="Peek at a week" prop:role='["btn", "ic-pan"]'></anvil-component>
+        <a class="ui-btn" href="#home" anvil:name="home_link">Back to this week</a>
+      </div>
+    </div>
+  </anvil-block>
+</anvil-form>

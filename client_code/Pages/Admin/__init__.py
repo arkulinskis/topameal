@@ -38,8 +38,8 @@ class Admin(AdminTemplate):
     def _kitchen(self):
         d = state.call("admin_kitchen_stats")
         n = self.dom_nodes
-        for key in ("kitchens", "weeks", "cooked", "nos"):
-            n["k_" + key].textContent = str(d[key])
+        for key in ("kitchens", "weeks", "cooked", "nos", "loved"):
+            n["k_" + key].textContent = str(d.get(key, 0))
         top = max([t["planned"] for t in d["toppers"]] + [1])
         self.topper_panel.items = [dict(t, max=top) for t in d["toppers"]]
 

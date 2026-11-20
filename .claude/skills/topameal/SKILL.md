@@ -130,6 +130,26 @@ tools/                     check.py, assets.py, build_icons.py, make_icons.py, u
   (`python -I APP_MAKER/tools/loaders.py apply topameal <preset>`), `LEGAL_THEME` in startup.py.
 - **Icon:** edit theme/assets/icon.svg, `python -I tools/make_icons.py`, then `python tools/assets.py`.
 
+## Memory between weeks, sent weeks (2026-11-20)
+
+- **Send this week** (`Pages/Home.send_button_click`): link `#week/<key>.<key>...` (topper keys, max 7). `Pages/Week`
+  calls the public `peek_week(code)` (rate-limited 60/h; `_keys()` drops unknown keys and repeats, orders by
+  perishability; signed in, each card gets `swap` = `_why_not()`), and `adopt_week(code, today)` makes it the plan
+  (shares new_plan's 20/h limit; keeps the sent length; swaps what doesn't suit via `P.pick(keep=fit, exclude=swapped)`).
+  Share sheet only on touch devices (`tm.is_touch()`), otherwise copy (Dialogs/CopyList with `title`).
+- **Still at home** (`Planner.leftovers`, `Kitchen._home`): from the newest 8 shopped weeks' `checked` (= bought, since
+  set_shopped ticks every line), "one" groceries within their keep days. A grocery ticked while it was still at home
+  keeps its OLDER date (ticking meant "I have it"). `P.shopping(home=)` moves them to aisle `home` with `since`;
+  `P.home_notes` gives Mom's line (rarest first, cupboard things left out); `P.pick(have=)` +1.0 per ingredient
+  (+0.3 cupboard). The landing Peek (`sample_week`) ignores all this.
+- **How did it go down?** (`rate_dinner(key, verdict, today)`): verdict "loved" / "nope" / None stored on the cooked slot
+  inside `weeks.slots` (no schema change). "nope" = on the never list with no_counts 3 (Bring back in You undoes it);
+  un-cooking clears the verdict (`_set_verdict`). `_loved(k)` = newest verdict per topper over 12 weeks is "loved" and
+  not on never; `P.pick(loved=)` +2.0, last week's soft-exclude still applies so favourites rotate. Cards get `loved`
+  (heart flag in Items/WeekCard) and `verdict`; Admin › Kitchen counts both.
+- **Catalogue rule of thumb:** keep at least 4 toppers for every single "don't eat" option and for vegetarian + no
+  dairy (7 today), and 7+ thrifty vegetarian (10 today), or small diets get the same dinners every week.
+
 ## Gotchas
 
 - The local App Server (1.18) lags hosted Anvil: no `HtmlComponent.attrs` (use state.set_attr), `Notification(role=)`

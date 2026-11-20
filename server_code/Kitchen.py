@@ -8,6 +8,12 @@ Everyone in a household can see and change the plan, the list and the settings; 
 simpleObject columns are always reassigned whole (Anvil doesn't save changes made inside a list).
 Every callable takes the browser's local date (`today`, YYYY-MM-DD) so "tonight" and cook-by dates match
 the person's day; it is clamped to within 2 days of the server's date.
+
+Memory between weeks (no extra columns): a cooked slot can carry `verdict` ("loved" = Everyone ate it, a favourite
+that comes back now and then; "nope" = Not again, which also puts it on the never list), and the jars and bunches
+bought on earlier shops (weeks.checked of shopped weeks) are "probably still at home" (Planner.leftovers): the list
+groups them last and new plans lean towards toppers that use them up. A week can be sent as a link
+(#week/<key>.<key>...): peek_week shows it to anyone, adopt_week makes it the household's plan.
 """
 import datetime as dt
 import random
@@ -26,6 +32,12 @@ DEFAULTS = {"people": 2, "nights": 4, "budget": 2}
 PLAN_DAYS = 9          # a plan older than this is replaced by a fresh one when the member comes back
 NEVER_AFTER = 3        # saying no to the same topper this many times puts it on the never list
 MAX_MEMBERS = 8
+HOME_WEEKS = 8         # how many past weeks Mom looks back at for jars that are probably still at home
+LOVED_WEEKS = 12       # how far back a favourite counts
+MAX_SENT = 7           # dinners in a sent-week link
+WHY = {"vegetarian": "you're vegetarian", "pork": "you don't eat pork", "beef": "you don't eat beef",
+       "chicken": "you don't eat chicken", "fish": "you don't eat fish", "shellfish": "you don't eat shellfish",
+       "dairy": "you don't do dairy", "nuts": "you can't have nuts", "spicy": "you'd rather skip spicy"}
 
 
 def today_of(value):
@@ -92,9 +104,39 @@ def _latest(k):
     return next(iter(_weeks(k)), None)
 
 
-def _new_week(user, k, today, avoid_keys=()):
+def _home(k, today, skip=None, history=None):
+    """Groceries probably still at home from the kitchen's recent shopped weeks (not `skip`, the week on show):
+    {grocery key: 'YYYY-MM-DD' bought}. set_shopped writes every list line into `checked`, so checked = bought."""
+    rows = list(history) if history is not None else list(_weeks(k))
+    skip_id = skip.get_id() if skip is not None else None
+    past = [(w["shopped"], list(P.ticks(w["checked"]))) for w in rows[:HOME_WEEKS + 1]
+            if w["shopped"] is not None and w["shopped"] <= today and w.get_id() != skip_id]
+    return P.leftovers(past, today)
+
+
+def _verdicts(k, history=None):
+    """The newest verdict per topper over the last LOVED_WEEKS weeks: {key: "loved" | "nope"}."""
+    rows = list(history) if history is not None else list(_weeks(k))
+    out = {}
+    for w in rows[:LOVED_WEEKS]:
+        for sl in (w["slots"] or []):
+            if sl.get("verdict") in ("loved", "nope") and sl.get("cooked"):
+                out.setdefault(sl["key"], sl["verdict"])
+    return out
+
+
+def _loved(k, history=None):
+    """The household's favourites: rated "Everyone ate it" lately, not stopped since."""
+    never = set(k["never"] or [])
+    return [key for key, v in _verdicts(k, history).items() if v == "loved" and key in R.BY_KEY and key not in never]
+
+
+def _new_week(user, k, today, avoid_keys=(), keys=None):
     kp = kitchen_plain(k)
-    keys = P.pick(kp["nights"], kp, soft_exclude=avoid_keys)
+    if keys is None:
+        history = list(_weeks(k))
+        keys = P.pick(kp["nights"], kp, soft_exclude=avoid_keys, have=list(_home(k, today, history=history)),
+                      loved=_loved(k, history))
     slots = P.order([{"key": key, "cooked": None} for key in keys])
     stamp, prev = C.now(), _latest(k)
     if prev is not None and prev["created"] is not None and stamp <= prev["created"]:
@@ -118,11 +160,18 @@ def week_dict(user, w, k, today):
     todo = [c for c in cards if not c["cooked"]]
     kp = kitchen_plain(k)
     history = list(_weeks(k))
+    home = _home(k, today, skip=w, history=history)
+    loved = set(_loved(k, history))
+    verdicts = {sl["key"]: sl.get("verdict") for sl in slots if sl.get("cooked")}
+    for c in cards:
+        c["loved"] = c["key"] in loved
+        c["verdict"] = verdicts.get(c["key"]) if c["cooked"] else None
     return {"id": w.get_id(), "started": C.iso(w["started"]), "shopped": C.iso(w["shopped"]),
             "slots": cards, "next": todo[0]["key"] if todo else None, "all_done": bool(cards) and not todo,
             "nos": [{"key": n["key"], "name": R.name_of(n["key"]), "auto": bool(n.get("auto"))}
                     for n in (w["nos"] or []) if n["key"] in R.BY_KEY],
-            "list": P.shopping(keys, kp["people"], w["checked"]),
+            "list": P.shopping(keys, kp["people"], w["checked"], home),
+            "home_names": P.home_notes([c["key"] for c in todo], home)[:2],
             "totals": P.totals(keys), "shared": P.shared(keys), "people": kp["people"],
             "at_home": R.AT_HOME,
             "story": {"weeks": len(history), "cooked": sum(len([s for s in (h["slots"] or []) if s.get("cooked")]) for h in history)}}
@@ -179,7 +228,9 @@ def say_no(key, today=None):
     k.update(no_counts=counts, never=never)
     others = [s["key"] for j, s in enumerate(slots) if j != i]
     exclude = set(never) | {n["key"] for n in nos} | {key} | set(others)
-    new = P.replacement(kitchen_plain(k), others, exclude)
+    history = list(_weeks(k))
+    new = P.replacement(kitchen_plain(k), others, exclude, have=list(_home(k, today, skip=w, history=history)),
+                        loved=_loved(k, history))
     if new:
         slots[i] = {"key": new, "cooked": None}
         nos.append({"key": key, "by": new})
@@ -244,8 +295,56 @@ def set_cooked(key, flag=True, today=None):
         if i is None:
             return C.fail("That one isn't on this week's plan.")
     slots[i]["cooked"] = today.isoformat() if flag else None
+    if not flag and slots[i].get("verdict"):
+        _set_verdict(k, slots[i], None)
     _save(w, slots=P.order(slots))
     return _reply(user, w, k, today)
+
+
+def _set_verdict(k, slot, verdict):
+    """Store (or clear) a cooked slot's verdict and keep the never list in step: "nope" puts the topper on it (as if
+    it had been refused three times); taking a "nope" back takes it off again."""
+    key, old = slot["key"], slot.get("verdict")
+    if verdict:
+        slot["verdict"] = verdict
+    else:
+        slot.pop("verdict", None)
+    if verdict == old or "nope" not in (verdict, old):
+        return
+    never = [x for x in (k["never"] or []) if x != key]
+    counts = dict(k["no_counts"] or {})
+    if verdict == "nope":
+        never.append(key)
+        counts[key] = NEVER_AFTER
+    else:
+        counts[key] = 0
+    k.update(never=never, no_counts=counts)
+
+
+VERDICT_NOTES = {
+    "loved": "That's going in my favourites. It'll come back now and then.",
+    "nope": "Noted. I won't make you cook that again. (It's in You if you change your mind.)",
+    None: "Alright, forgotten. Tell me another time.",
+}
+
+
+@anvil.server.callable(require_user=True)
+def rate_dinner(key, verdict=None, today=None):
+    """"How did it go down?" after cooking: "loved" (Everyone ate it: a favourite, it comes back now and then),
+    "nope" (Not again: Mom stops suggesting it; Bring back in You) or None (undo). Only for a dinner cooked this week."""
+    user = C.require_user()
+    if verdict not in VERDICT_NOTES:
+        return C.fail("I didn't catch that, love.")
+    today = today_of(today)
+    k = kitchen_row(user)
+    w = current_week(user, k, today)
+    slots = [dict(sl) for sl in (w["slots"] or [])]
+    i = _find(slots, key, cooked=True)
+    if i is None:
+        return C.fail("Cook it first, love, then tell me how it went.")
+    _set_verdict(k, slots[i], verdict)
+    _save(w, slots=P.order(slots))
+    return C.ok(verdict=verdict, note=VERDICT_NOTES[verdict])
 
 
 @anvil.server.callable(require_user=True)
@@ -317,11 +416,13 @@ def get_cook(key, today=None):
     people = kitchen_plain(k)["people"]
     slots = list(w["slots"] or [])
     card = next((c for c in P.schedule(slots, today, w["shopped"]) if c["key"] == key), None)
+    slot = next((sl for sl in slots if sl["key"] == key and sl.get("cooked")), None)
     base = R.BASES[t["base"]]
     return C.ok(topper=dict(P.topper_card(t), steps=t["steps"], tip=t["tip"],
                             ingredients=[P.grocery_text(g, P.scaled(a, people, R.GROCERIES[g][4])) for g, a in t["ing"]]),
                 base=dict(base, key=t["base"]), people=people, in_plan=card is not None,
-                cooked=card["cooked"] if card else None, cook_by=card["cook_by"] if card else None)
+                cooked=card["cooked"] if card else None, cook_by=card["cook_by"] if card else None,
+                verdict=slot.get("verdict") if slot else None)
 
 
 @anvil.server.callable(require_user=True)
@@ -372,7 +473,9 @@ def save_kitchen(data, today=None):
         fits.pop(last)
     if len(fits) < kp["nights"]:
         nos = {n["key"] for n in (w["nos"] or [])}
-        keys = P.pick(kp["nights"], kp, keep=[s["key"] for s in fits], exclude=nos)
+        history = list(_weeks(k))
+        keys = P.pick(kp["nights"], kp, keep=[s["key"] for s in fits], exclude=nos,
+                      have=list(_home(k, today, skip=w, history=history)), loved=_loved(k, history))
         fits += [{"key": key, "cooked": None} for key in keys[len(fits):]]
     changed = [s["key"] for s in fits] != [s["key"] for s in slots]
     _save(w, slots=P.order(fits))
@@ -388,13 +491,104 @@ def confirm_kitchen():
     return C.ok()
 
 
+def _peek(keys, people=2):
+    """A week to look at (nothing saved): the dinners, the merged list, the totals."""
+    return {"slots": [P.topper_card(R.BY_KEY[key]) for key in keys], "list": P.shopping(keys, people),
+            "totals": P.totals(keys), "shared": P.shared(keys), "at_home": R.AT_HOME}
+
+
 @anvil.server.callable
 def sample_week():
     """A peek for visitors on the landing page: a plan for two, nothing saved."""
     kp = dict(DEFAULTS, avoid=[], never=[])
     keys = [s["key"] for s in P.order([{"key": key, "cooked": None} for key in P.pick(4, kp)])]
-    return {"slots": [P.topper_card(R.BY_KEY[key]) for key in keys], "list": P.shopping(keys, 2),
-            "totals": P.totals(keys), "shared": P.shared(keys), "at_home": R.AT_HOME}
+    return _peek(keys)
+
+
+def _keys(code):
+    """The topper keys in a sent-week code ('tuscan_chicken.quick_bolognese'): known ones only, no repeats, at most
+    MAX_SENT, in Mom's order (most perishable first). [] when nothing usable is in it."""
+    if not isinstance(code, str) or not code or len(code) > 300:
+        return []
+    keys = []
+    for part in code.split("."):
+        part = part.strip()
+        if part in R.BY_KEY and part not in keys:
+            keys.append(part)
+    return [sl["key"] for sl in P.order([{"key": key, "cooked": None} for key in keys[:MAX_SENT]])]
+
+
+def _why_not(t, kp):
+    """Why a topper doesn't suit this kitchen ("you don't eat pork"), or None when it does (= R.is_allowed + never)."""
+    if t["key"] in kp["never"]:
+        return "you asked me to stop suggesting it"
+    avoid = set(kp["avoid"])
+    if "vegetarian" in avoid and "veg" not in t["tags"]:
+        return WHY["vegetarian"]
+    for a, _ in R.AVOID:
+        if a in avoid and a in t["tags"]:
+            return WHY.get(a, "it doesn't suit your kitchen")
+    if t["tier"] > kp["budget"]:
+        return "it's over your budget"
+    return None
+
+
+@anvil.server.callable
+def peek_week(code):
+    """#week/<keys>: a week someone sent. Anyone may look (dinners, totals and the list for two; nothing saved).
+    For a signed-in member each dinner that doesn't suit their kitchen carries `swap` (why), because
+    "Make this my week" (adopt_week) swaps those."""
+    if C.rate_limited("peek_week", 60, 3600):
+        return C.fail("Too many tries. Please wait a little and open the link again.")
+    keys = _keys(code)
+    if not keys:
+        return C.fail("That link doesn't hold a week I recognise. It may have been cut short.")
+    d = _peek(keys)
+    user = C.me()
+    has_plan = False
+    if user is not None:
+        k = user["kitchen"] or own_kitchen(user, create=False)
+        kp = kitchen_plain(k) if k is not None else dict(DEFAULTS, avoid=[], never=[])
+        for card in d["slots"]:
+            card["swap"] = _why_not(R.BY_KEY[card["key"]], kp)
+        has_plan = k is not None and _latest(k) is not None
+    return C.ok(keys=keys, member=user is not None, has_plan=has_plan, **d)
+
+
+@anvil.server.callable(require_user=True)
+def adopt_week(code, today=None):
+    """"Make this my week": a sent week becomes the household's new plan (the old one stays in the history).
+    Dinners that don't suit the kitchen are swapped for ones that do. The plan keeps the sent number of dinners,
+    not the kitchen's usual nights (whoever sent it planned that many)."""
+    user = C.require_user()
+    sent = _keys(code)
+    if not sent:
+        return C.fail("That link doesn't hold a week I recognise. It may have been cut short.")
+    if C.rate_limited("new_plan", 20, 3600):
+        return C.fail("That's a lot of new plans in one hour. Let's stick with this one for now, love.")
+    today = today_of(today)
+    k = kitchen_row(user)
+    kp = kitchen_plain(k)
+    why = {key: _why_not(R.BY_KEY[key], kp) for key in sent}
+    fit = [key for key in sent if why[key] is None]
+    swapped = [key for key in sent if why[key] is not None]
+    keys = list(fit)
+    if swapped:
+        history = list(_weeks(k))
+        last = [sl["key"] for sl in (history[0]["slots"] or [])] if history else []
+        keys = P.pick(len(sent), kp, keep=fit, exclude=swapped, soft_exclude=last,
+                      have=list(_home(k, today, history=history)), loved=_loved(k, history))
+    if not keys:
+        return C.fail("None of those dinners suit your kitchen, love, and I couldn't find others that do. Loosen something in You?")
+    w = _new_week(user, k, today, keys=keys)
+    note = "This is the week you were sent. Same deal: say no to anything you don't fancy."
+    if len(swapped) == 1:
+        new = [key for key in keys if key not in fit]
+        note = "This is the week you were sent. I swapped %s%s, since %s." % (
+            R.name_of(swapped[0]), " for " + R.name_of(new[0]) if new else "", why[swapped[0]])
+    elif swapped:
+        note = "This is the week you were sent. I swapped %d dinners that don't suit your kitchen." % len(swapped)
+    return _reply(user, w, k, today, note, swapped=[{"key": key, "name": R.name_of(key), "why": why[key]} for key in swapped])
 
 
 @anvil.server.callable(require_user=True)
@@ -508,7 +702,7 @@ def remove_member(user_id):
 def stats():
     """Which toppers get picked, refused and cooked, across every plan."""
     rows = {t["key"]: {"key": t["key"], "name": t["name"], "tier": t["tier"], "base": t["base"],
-                       "protein": P.protein(t), "planned": 0, "no": 0, "cooked": 0} for t in R.TOPPERS}
+                       "protein": P.protein(t), "planned": 0, "no": 0, "cooked": 0, "loved": 0, "nope": 0} for t in R.TOPPERS}
     weeks = app_tables.weeks.search()
     for w in weeks:
         for s in (w["slots"] or []):
@@ -516,12 +710,15 @@ def stats():
                 rows[s["key"]]["planned"] += 1
                 if s.get("cooked"):
                     rows[s["key"]]["cooked"] += 1
+                if s.get("verdict") in ("loved", "nope"):
+                    rows[s["key"]][s["verdict"]] += 1
         for n in (w["nos"] or []):
             if n["key"] in rows and not n.get("auto"):
                 rows[n["key"]]["no"] += 1
     out = sorted(rows.values(), key=lambda r: (-r["planned"], r["name"]))
     return {"toppers": out, "weeks": len(weeks), "kitchens": len(app_tables.kitchens.search()),
-            "cooked": sum(r["cooked"] for r in out), "nos": sum(r["no"] for r in out)}
+            "cooked": sum(r["cooked"] for r in out), "nos": sum(r["no"] for r in out),
+            "loved": sum(r["loved"] for r in out), "nope": sum(r["nope"] for r in out)}
 
 
 @anvil.server.callable(require_user=True)

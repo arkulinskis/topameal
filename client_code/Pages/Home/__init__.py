@@ -1,4 +1,5 @@
 from anvil import *
+from anvil.js import window
 
 from ._anvil_designer import HomeTemplate
 from ... import router, state, tm
@@ -7,7 +8,10 @@ from ... import router, state, tm
 class Home(HomeTemplate):
     """#home ("This week", Operate): Mom's plan for the member. Her note, who it's shared with, the first-visit guesses,
     then one hero (go shopping / tonight's dinner / all done), the dinners in spoilage order (Items/WeekCard, one
-    "No thanks" each: Mom swaps it), the set-aside tray (Items/TrayChip: change your mind) and "Start a whole new week".
+    "No thanks" each: Mom swaps it; favourites wear a heart flag), the set-aside tray (Items/TrayChip: change your
+    mind), "Send this week" (a #week/<keys> link through the phone's share sheet, or copied on a computer: Pages/Week)
+    and "Start a whole new week". Before shopping, Mom's second line names a jar that's probably still at home
+    (week["home_names"]) and the dinner that uses it up.
     Server: get_week, say_no, say_yes, confirm_kitchen, new_plan, too_tired (server_code/Kitchen.py)."""
 
     def __init__(self, args=(), **properties):
@@ -36,8 +40,13 @@ class Home(HomeTemplate):
         if past:
             return [hi + " Check the %s before you cook it, love." % past["perishable"], "If it smells off, bin it. Not worth a bad tummy."]
         if not w["shopped"]:
-            second = ("The %s go in more than one dinner, so nothing gets wasted." % tm.words(w["shared"][:3]) if w["shared"]
-                      else "Don't fancy one? Say no and I'll find another.")
+            home = w.get("home_names") or []
+            if home:
+                second = "You should still have %s from last time. The %s will use it up." % (home[0]["name"], home[0]["dinner"].lower())
+            elif w["shared"]:
+                second = "The %s go in more than one dinner, so nothing gets wasted." % tm.words(w["shared"][:3])
+            else:
+                second = "Don't fancy one? Say no and I'll find another."
             return [hi + " I've sorted this week's dinners. All you have to do is the shopping.", second]
         if nxt:
             return [hi + " Tonight it's %s." % nxt["name"].lower(),
@@ -92,7 +101,8 @@ class Home(HomeTemplate):
             n["sum_word"].textContent = t["tier_label"].lower()
         self.tray_part.visible = bool(w["nos"])
         self.tray_panel.items = w["nos"]
-        self.fresh_part.visible = has and not done
+        self.fresh_part.visible = has
+        self.fresh_button.visible = not done
         self.fresh = None
 
     # ---- actions
@@ -131,6 +141,26 @@ class Home(HomeTemplate):
         r = state.call("new_plan", tm.today())
         if r:
             self._take(r)
+
+    @handle("send_button", "click")
+    def send_button_click(self, **event_args):
+        """A link to this week (#week/<key>.<key>...) for a sister, a partner, a Facebook group: the phone's share sheet,
+        or the clipboard on a computer (with the copy box when the browser won't)."""
+        slots = self.w.get("slots") or []
+        if not slots:
+            return
+        url = window.location.origin + window.location.pathname + router.href("week", ".".join([s["key"] for s in slots]))
+        text = "My dinners this week, sorted by Topameal: %s. It writes the shopping list too." % tm.words([s["name"] for s in slots])
+        if tm.can_share() and tm.is_touch():
+            tm.share("This week's dinners", text, url)
+            return
+        full = text + "\n" + url
+
+        def fallback():
+            from ...Dialogs.CopyList import CopyList
+            alert(CopyList(text=full, title="Your week's link"), buttons=[], role="app-dialog", dismissible=True)
+
+        tm.copy_text(full, lambda: state.toast("Link copied. Send it to whoever needs a week of dinners.", "ok"), fallback)
 
     @handle("fresh_button", "click")
     def fresh_button_click(self, **event_args):

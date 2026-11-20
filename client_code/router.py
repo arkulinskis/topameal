@@ -19,6 +19,7 @@ PAGES = {
     "list": ("user", "Shopping list"),
     "cook": ("user", "Cook"),
     "join": (None, "Join a kitchen"),
+    "week": (None, "A week of dinners"),
     "profile": ("user", "You"),
     "admin": ("admin", "Admin"),
 }
@@ -47,6 +48,9 @@ def _form(name):
     if name == "join":
         from .Pages.Join import Join
         return Join
+    if name == "week":
+        from .Pages.Week import Week
+        return Week
     if name == "profile":
         from .Pages.Profile import Profile
         return Profile

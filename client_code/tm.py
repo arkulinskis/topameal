@@ -17,7 +17,8 @@ SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 PROUD = ["Proud of you.", "Look at you, feeding yourself properly.", "That's my kid.",
          "Well done, love. Now sit down and eat.", "See? You can do it.", "Lovely. Soak the pan while you eat."]
-AISLE_ICONS = {"meat": "pan", "veg": "sparkle", "fridge": "fridge", "freezer": "snow", "shelf": "grid", "cupboard": "home"}
+AISLE_ICONS = {"meat": "pan", "veg": "sparkle", "fridge": "fridge", "freezer": "snow", "shelf": "grid", "cupboard": "home",
+               "home": "clock"}
 
 
 def _pad(n):
@@ -165,6 +166,14 @@ def copy_text(text, done, fallback):
 
 def can_share():
     return getattr(window.navigator, "share", None) is not None
+
+
+def is_touch():
+    """A finger-first device (phone, tablet): share sheets belong there; computers get Copy."""
+    try:
+        return bool(getattr(window.matchMedia("(pointer: coarse)"), "matches"))
+    except Exception:
+        return False
 
 
 def share(title, text, url):

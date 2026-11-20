@@ -103,8 +103,13 @@
     $$('.ck-step')[1].click();
     ok($$('.ck-step')[1].classList.contains('done') && $$('.ck-step')[1].getAttribute('aria-pressed') === 'true', 'tapping a step ticks it');
     await click('.ck-end button', 'I cooked it');
+    await until(() => vis(byText('.ck-verdict button', 'Everyone ate it')), 'how did it go down?');
+    await click('.ck-verdict button', 'Everyone ate it');
+    await until(() => /favourites/.test($('.ck-reply').textContent), 'Mom replies');
+    ok(true, '"I cooked it", then "Everyone ate it": Mom keeps it as a favourite');
+    await click('.ck-end-in a[href="#home"]');
     await until(() => location.hash === '#home' && window.UI_READY && $('.wk-card.done'), 'cooked');
-    ok(true, '"I cooked it" marks the dinner done');
+    ok(vis($('.wk-card.done .tm-flag.love')), 'the cooked dinner is marked done and wears "A favourite"');
 
     // ---- your kitchen
     await page('#profile', () => $('.kc-step'), 'profile');

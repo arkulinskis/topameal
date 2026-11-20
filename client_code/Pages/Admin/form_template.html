@@ -27,8 +27,9 @@
           <div class="ui-card ui-stat"><b anvil:dom-node="k_weeks"></b><span>weekly plans</span></div>
           <div class="ui-card ui-stat"><b anvil:dom-node="k_cooked"></b><span>dinners cooked</span></div>
           <div class="ui-card ui-stat"><b anvil:dom-node="k_nos"></b><span>times someone said no</span></div>
+          <div class="ui-card ui-stat"><b anvil:dom-node="k_loved"></b><span>"Everyone ate it"</span></div>
         </div>
-        <p class="muted small">Every topper in the catalogue (server_code/Recipes.py), most planned first. Lots of "no" means people skip it: reword it or swap it out. Demo households are counted too.</p>
+        <p class="muted small">Every topper in the catalogue (server_code/Recipes.py), most planned first. Lots of "no" means people skip it: reword it or swap it out. Favourites and "not again" are what people said after cooking it. Demo households are counted too.</p>
         <div class="ui-card ad-tp">
           <div class="ad-table ad-tp-head"><b>Topper</b><b>Planned</b><b>No</b><b>Cooked</b></div>
           <anvil-component type="RepeatingPanel" name="topper_panel" prop:item_template="Topameal.Items.TopperRow"></anvil-component>

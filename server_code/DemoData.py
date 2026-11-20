@@ -19,18 +19,19 @@ DEMO_USERS = [
 ]
 SHARED = [(3, 0)]   # (user index, joins the kitchen of user index): Sam shares Maya's kitchen
 # Each demo household: (user index, people, nights, budget, avoid, weeks). A week is
-# (days ago it started, [(topper key, cooked days after start or None)], [keys said no to], shopped days after start or None).
+# (days ago it started, [(topper key, cooked days after start or None[, verdict])], [keys said no to], shopped days after start or None).
+# A verdict ("loved" = Everyone ate it, "nope" = Not again) is what the household said after cooking.
 DEMO_KITCHENS = [
     (0, 1, 4, 2, [], [
-        (9, [("lemon_salmon", 0), ("honey_garlic_chicken", 1), ("sausage_peppers", 3), ("tuna_tomato", 5)], ["beef_broccoli"], 0),
+        (9, [("lemon_salmon", 0), ("honey_garlic_chicken", 1, "loved"), ("sausage_peppers", 3), ("tuna_tomato", 5, "loved")], ["beef_broccoli"], 0),
         (2, [("tuscan_chicken", 0), ("taco_beef", None), ("chorizo_chickpeas", None), ("red_lentil_dal", None)], ["shakshuka"], 0),
     ]),
     (1, 2, 5, 3, ["fish"], [
-        (1, [("steak_bites", 0), ("butter_chicken", None), ("kielbasa_skillet", None), ("halloumi_veg", None), ("garlic_shrimp", None)],
+        (1, [("steak_bites", 0, "loved"), ("butter_chicken", None), ("kielbasa_skillet", None), ("halloumi_veg", None), ("garlic_shrimp", None)],
          ["bacon_peas_pasta", "peanut_pork"], 0),
     ]),
     (2, 4, 3, 1, ["vegetarian"], [
-        (3, [("mushroom_stroganoff", 0), ("black_bean_chili", 1), ("red_lentil_dal", 2)], [], 0),
+        (3, [("mushroom_stroganoff", 0, "loved"), ("black_bean_chili", 1), ("lentil_bolognese", 2, "loved")], [], 0),
     ]),
 ]
 # Tables that hold demo rows (each has an is_demo column). Children before parents.
@@ -66,12 +67,19 @@ def load():
                 kitchen=kitchens[who], owner=owner, started=start, is_demo=True, checked=[], updated=C.now(),
                 created=C.now() - dt.timedelta(days=ago),
                 shopped=None if shopped is None else start + dt.timedelta(days=shopped),
-                slots=[{"key": k, "cooked": None if c is None else (start + dt.timedelta(days=c)).isoformat()} for k, c in slots],
+                slots=[_slot(start, *sl) for sl in slots],
                 nos=[{"key": k, "by": None} for k in nos])
     for who, host in SHARED:
         users[who]["kitchen"] = kitchens[host]
     C.set_setting("demo", "loaded")
     return counts()
+
+
+def _slot(start, key, cooked, verdict=None):
+    out = {"key": key, "cooked": None if cooked is None else (start + dt.timedelta(days=cooked)).isoformat()}
+    if verdict and cooked is not None:
+        out["verdict"] = verdict
+    return out
 
 
 def remove(remember=True):
